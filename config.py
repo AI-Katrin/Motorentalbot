@@ -1,3 +1,3 @@
 BOT_TOKEN = '7681988680:AAGG_Zt0ss8SjxKG4R0ZTsqscoaQfPvM95I'
-MINIAPP_URL = 'https://7adb-185-246-155-93.ngrok-free.app'
+MINIAPP_URL = 'https:www.motorentalbot.ru'
 EMPLOYEE_CHAT_ID = 421667800
