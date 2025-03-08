@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Аренда мотоцикла</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f8f8f8;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* Шапка */
+        header {
+            width: 100%;
+            max-width: 420px;
+            background-color: #fff;
+            padding: 10px;
+            text-align: center;
+        }
+        header .top-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        header .top-info h2 {
+            margin: 0;
+            font-size: 14px;
+        }
+        header .top-info p {
+            margin: 0;
+            font-size: 12px;
+        }
+
+        /* Подвал */
+        footer {
+            width: 100%;
+            max-width: 420px;
+            background-color: #fff;
+            padding: 10px;
+            text-align: center;
+            font-size: 12px;
+            margin-top: 10px;
+        }
+
+        .content {
+            width: 100%;
+            max-width: 420px;
+            padding: 15px;
+            text-align: center;
+        }
+        .swiper {
+            width: 100%;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .swiper-slide {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: white;
+            padding: 10px;
+            border-radius: 10px;
+        }
+        .swiper-slide img {
+            width: 90%;
+            max-width: 300px;
+            border-radius: 8px;
+        }
+        .moto-info {
+            margin-top: 10px;
+        }
+        .moto-info h2 {
+            font-size: 18px;
+            margin: 5px 0;
+        }
+        .moto-info p {
+            font-size: 14px;
+            margin: 3px 0;
+        }
+        .buttons {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            max-width: 420px;
+            margin-top: 15px;
+        }
+        .button {
+            flex: 1;
+            padding: 12px;
+            text-align: center;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            border-radius: 8px;
+        }
+        .back {
+            background-color: #d3d3d3;
+        }
+        .continue {
+            background-color: #007bff;
+            color: white;
+        }
+    </style>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css">
+</head>
+<body>
+
+    <!-- Шапка -->
+    <header>
+        <div class="top-info">
+            <h2>Аренда мотоциклов / Мотоэвакуация</h2>
+            <p><strong>+7 (499) 460-47-08</strong><br>sales@lomovtravel.com</p>
+        </div>
+    </header>
+
+    <div class="content">
+        <h1>Выберите мотоцикл</h1>
+
+        <!-- Слайдер -->
+        <div class="swiper">
+            <div class="swiper-wrapper">
+                {% for moto in motorcycles %}
+                <div class="swiper-slide">
+                    <img src="{{ moto.image }}" alt="{{ moto.name }}">
+                    <div class="moto-info">
+                        <h2>{{ moto.name }}</h2>
+                        <p>Стоимость: {{ moto.price }} / сутки</p>
+                        <p>Залог: {{ moto.deposit }}</p>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            <!-- Навигация -->
+            <div class="swiper-pagination"></div>
+        </div>
+
+        <!-- Кнопки -->
+        <div class="buttons">
+            <button class="button back" onclick="window.history.back();">Назад</button>
+            <button class="button continue" onclick="continueRent();">Продолжить</button>
+        </div>
+    </div>
+
+    <!-- Подвал -->
+    <footer>
+        <p>Телефон: +7 (499) 460-47-08 | Email: sales@lomovtravel.com | Адрес: ул. Автозаводская, д.8</p>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
+    <script>
+        let tg = window.Telegram.WebApp;
+        tg.expand();
+
+        // Получаем user_id и phone из URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const user_id = urlParams.get("user_id");
+        const phone = urlParams.get("phone");
+
+        function continueRent() {
+            let activeSlide = document.querySelector('.swiper-slide-active');
+            let motoName = activeSlide.querySelector('h2').innerText;
+            let motoPrice = activeSlide.querySelectorAll('p')[0].innerText;
+            let motoDeposit = activeSlide.querySelectorAll('p')[1].innerText;
+
+            let data = {
+                user_id: user_id,
+                phone: phone,
+                motorcycle: {
+                    name: motoName,
+                    price: motoPrice,
+                    deposit: motoDeposit
+                }
+            };
+
+            fetch("https://yourdomain.com/api/rent", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(data)
+            }).then(response => response.json()).then(result => {
+                tg.close();
+            }).catch(error => console.error("Ошибка отправки:", error));
+        }
+    </script>
+</body>
+</html>
