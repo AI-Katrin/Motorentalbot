@@ -83,6 +83,7 @@
       background: white;
       padding: 10px;
       border-radius: 10px;
+      cursor: pointer;
     }
 
     .img-wrapper {
@@ -146,10 +147,66 @@
       color: black;
       z-index: 10;
     }
+
+    .modal {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0,0,0,0.5);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+    }
+
+    .modal.active {
+      display: flex;
+    }
+
+    .modal-content {
+      background: #fff;
+      padding: 20px;
+      border-radius: 20px;
+      max-width: 90%;
+      width: 100%;
+      text-align: left;
+      font-size: 14px;
+      line-height: 1.5;
+      position: relative;
+    }
+
+    .modal-content h2 {
+      font-size: 20px;
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+
+    .modal-content p {
+      margin: 5px 0;
+      white-space: pre-line;
+    }
+
+    .modal-content .close {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      font-size: 20px;
+      cursor: pointer;
+    }
+
+    .modal-buttons {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      margin-top: 20px;
+    }
+
+    .modal-buttons .button {
+      flex: 1;
+    }
   </style>
 </head>
 <body>
-  <!-- Шапка -->
   <header>
     <div class="top-info">
       <h2>Аренда мотоциклов / Мотоэвакуация</h2>
@@ -162,12 +219,10 @@
 
   <div class="content">
     <h1>Выберите мотоцикл</h1>
-
-    <!-- Слайдер -->
     <div class="swiper">
       <div class="swiper-wrapper">
         {% for moto in motorcycles %}
-        <div class="swiper-slide">
+        <div class="swiper-slide" onclick="openModal(this)" data-description="{{ moto.description }}" data-specs="{{ moto.specs }}">
           <div class="img-wrapper">
             <img src="{{ moto.image }}" alt="{{ moto.name }}" />
           </div>
@@ -179,21 +234,17 @@
         </div>
         {% endfor %}
       </div>
-
-      <!-- Пагинация и стрелки -->
       <div class="swiper-pagination"></div>
       <div class="swiper-button-prev"></div>
       <div class="swiper-button-next"></div>
     </div>
 
-    <!-- Кнопки -->
     <div class="buttons">
       <button class="button back" onclick="window.history.back();">Назад</button>
       <button class="button continue" onclick="continueRent();">Продолжить</button>
     </div>
   </div>
 
-  <!-- Подвал -->
   <footer>
     <p>
       Телефон: +7 (499) 460-47-08 |
@@ -201,6 +252,19 @@
       Адрес: ул. Автозаводская, д.8
     </p>
   </footer>
+
+  <div id="modal" class="modal">
+    <div class="modal-content">
+      <span class="close" onclick="closeModal()">&times;</span>
+      <h2 id="modal-title"></h2>
+      <p id="modal-description"></p>
+      <p id="modal-specs"></p>
+      <div class="modal-buttons">
+        <button class="button continue" onclick="selectMoto()">Выбрать</button>
+        <button class="button back" onclick="closeModal()">Назад</button>
+      </div>
+    </div>
+  </div>
 
   <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
   <script>
@@ -256,6 +320,26 @@
           .catch((error) => console.error("Ошибка отправки:", error));
       };
     });
+
+    function openModal(el) {
+      const title = el.querySelector("h2").textContent;
+      const desc = el.dataset.description || "Описание недоступно.";
+      const specs = el.dataset.specs || "";
+
+      document.getElementById("modal-title").textContent = title;
+      document.getElementById("modal-description").textContent = desc;
+      document.getElementById("modal-specs").textContent = specs;
+      document.getElementById("modal").classList.add("active");
+    }
+
+    function closeModal() {
+      document.getElementById("modal").classList.remove("active");
+    }
+
+    function selectMoto() {
+      alert("Вы выбрали: " + document.getElementById("modal-title").textContent);
+      closeModal();
+    }
   </script>
 </body>
 </html>
