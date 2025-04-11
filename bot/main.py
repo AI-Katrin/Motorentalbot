@@ -136,7 +136,7 @@ async def get_chatgpt_response(prompt: str, state: FSMContext) -> str:
         response = await aclient.chat.completions.create(
             model="gpt-4o-mini",
             messages=messages,
-            max_tokens=1000,
+            max_tokens=10000,
             temperature=0.7
         )
 
