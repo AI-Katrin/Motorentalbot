@@ -1,3 +1,10 @@
-BOT_TOKEN = '7681988680:AAGG_Zt0ss8SjxKG4R0ZTsqscoaQfPvM95I'
-MINIAPP_URL = 'https:www.motorentalbot.ru'
-EMPLOYEE_CHAT_ID = 421667800
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
+
+BOT_TOKEN = os.getenv("BOT_TOKEN")
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+MINIAPP_URL = os.getenv("MINIAPP_URL")
+EMPLOYEE_CHAT_ID = int(os.getenv("EMPLOYEE_CHAT_ID", 0))
+OPENAI_PROXY = os.getenv("OPENAI_PROXY")
