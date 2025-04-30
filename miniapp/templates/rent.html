@@ -311,7 +311,7 @@
           },
         };
 
-        fetch("https://motorentalbot.com/rent", {
+        fetch("https://motorentalbot.com/app/rent", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -353,7 +353,7 @@
       const user_id = params.get("user_id");
       const phone = params.get("phone");
 
-      const url = `/calendar?user_id=${encodeURIComponent(user_id)}&phone=${encodeURIComponent(phone)}&moto=${encodeURIComponent(motoName)}`;
+      const url = `/app/calendar?user_id=${encodeURIComponent(user_id)}&phone=${encodeURIComponent(phone)}&moto=${encodeURIComponent(motoName)}`;
       window.location.href = url;
      }
 

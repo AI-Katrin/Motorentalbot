@@ -91,12 +91,12 @@ def calculate_discount(days: int) -> float:
     else:
         return 0.0
 
-@app.get("/rent", response_class=HTMLResponse)
+@app.get("/app/rent", response_class=HTMLResponse)
 async def rent_page(request: Request):
     return templates.TemplateResponse("rent.html", {"request": request, "motorcycles": motorcycles})
 
 #Обработчик заказа на аренду
-@app.post("/api/rent")
+@app.post("/app/rent")
 async def process_rent(request: Request):
     data = await request.json()
     user_id = data.get("user_id")
@@ -119,7 +119,7 @@ async def process_rent(request: Request):
     await bot.send_message(EMPLOYEE_CHAT_ID, message)
     return JSONResponse(status_code=200, content={"message": "Заказ успешно оформлен"})
 
-@app.get("/calendar", response_class=HTMLResponse)
+@app.get("/app/calendar", response_class=HTMLResponse)
 async def calendar_page(request: Request, moto: str = "", user_id: str = "", phone: str = ""):
     return templates.TemplateResponse("calendar.html", {
         "request": request,
@@ -128,7 +128,7 @@ async def calendar_page(request: Request, moto: str = "", user_id: str = "", pho
         "phone": phone
     })
 
-@app.post("/confirm")
+@app.post("/app/confirm")
 async def confirm_rental(rental: RentalRequest):
     moto_info = motorcycle_data.get(rental.motorcycle)
     if not moto_info:
