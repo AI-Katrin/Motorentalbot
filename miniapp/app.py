@@ -108,11 +108,15 @@ async def process_rent(request: Request):
         return JSONResponse(status_code=400, content={"error": "Invalid request"})
 
     message = (
-        f"Новый заказ:\nПользователь ID: {user_id}\nТелефон: {phone}\n"
-        f"Мотоцикл: {motorcycle['name']}\nЦена: {motorcycle['price']}\nДепозит: {motorcycle['deposit']}"
+        f"Новый заказ на аренду мотоцикла\n\n"
+        f"Пользователь ID: {user_id}\n"
+        f"Телефон: {phone}\n"
+        f"Мотоцикл: {motorcycle['name']}\n"
+        f"Цена: {motorcycle['price']}\n"
+        f"Депозит: {motorcycle['deposit']}"
     )
 
-    # await bot.send_message(EMPLOYEE_CHAT_ID, message)  # если включено
+    await bot.send_message(EMPLOYEE_CHAT_ID, message)
     print(message)
     return JSONResponse(status_code=200, content={"message": "Заказ успешно оформлен"})
 
@@ -158,7 +162,7 @@ async def confirm_rental(rental: RentalRequest):
         f"Залог: {moto_info['deposit']:,} руб."
     )
 
-    # await bot.send_message(EMPLOYEE_CHAT_ID, message)  # если включено
+    await bot.send_message(EMPLOYEE_CHAT_ID, message)
     print(message)
     return JSONResponse(status_code=200, content={"message": "Заказ успешно оформлен"})
 
