@@ -51,6 +51,12 @@
       border-radius: 5px;
     }
 
+    #price-summary {
+      margin-top: 15px;
+      font-size: 14px;
+      text-align: left;
+    }
+
     .buttons {
       display: flex;
       justify-content: space-between;
@@ -94,6 +100,11 @@
   <label for="end">Окончание аренды:</label>
   <input type="datetime-local" id="end" name="end">
 
+  <div id="price-summary">
+    <p>Стоимость (без скидки): <span id="base-price">—</span> руб.</p>
+    <p>Стоимость аренды (с учетом скидки): <span id="discounted-price">—</span> руб.</p>
+  </div>
+
   <div class="buttons">
     <button class="button back" onclick="history.back()">Назад</button>
     <button class="button continue" onclick="submitForm()">Продолжить</button>
@@ -107,6 +118,44 @@
 </footer>
 
 <script>
+  const prices = {
+    "BMW R 1250 GS": 15000,
+    "BMW R 1250 RT": 18000,
+    "BMW R 18": 18000
+  };
+
+  function calculatePrice() {
+    const start = new Date(document.getElementById("start").value);
+    const end = new Date(document.getElementById("end").value);
+    const baseEl = document.getElementById("base-price");
+    const discountedEl = document.getElementById("discounted-price");
+    const moto = "{{ moto }}";
+
+    if (isNaN(start.getTime()) || isNaN(end.getTime()) || end <= start) {
+      baseEl.textContent = "—";
+      discountedEl.textContent = "—";
+      return;
+    }
+
+    const days = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
+    const pricePerDay = prices[moto] || 0;
+    const base = days * pricePerDay;
+
+    let discount = 0;
+    if (days >= 30) discount = 0.25;
+    else if (days >= 20) discount = 0.20;
+    else if (days >= 11) discount = 0.15;
+    else if (days >= 7) discount = 0.10;
+
+    const discounted = Math.round(base * (1 - discount));
+
+    baseEl.textContent = base.toLocaleString("ru-RU");
+    discountedEl.textContent = discounted.toLocaleString("ru-RU");
+  }
+
+  document.getElementById("start").addEventListener("change", calculatePrice);
+  document.getElementById("end").addEventListener("change", calculatePrice);
+
   function submitForm() {
     const start = document.getElementById("start").value;
     const end = document.getElementById("end").value;
@@ -120,11 +169,11 @@
     }
 
     const data = {
-      user_id: user_id,
-      phone: phone,
+      user_id,
+      phone,
       motorcycle: moto,
-      start: start,
-      end: end
+      start,
+      end
     };
 
     fetch("https://motorentalbot.com/app/confirm", {
@@ -137,7 +186,7 @@
       .then((r) => r.json())
       .then((res) => {
         alert("Бронирование отправлено!");
-        // window.location.href = "/thankyou"; // если нужен редирект
+        // window.location.href = "/thankyou";
       })
       .catch((err) => console.error(err));
   }

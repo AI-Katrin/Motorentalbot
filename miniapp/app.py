@@ -78,8 +78,8 @@ class RentalRequest(BaseModel):
     user_id: str
     phone: str
     motorcycle: str
-    start: str  # Формат: 'YYYY-MM-DDTHH:MM'
-    end: str    # Формат: 'YYYY-MM-DDTHH:MM'
+    start: str
+    end: str
 
 def calculate_discount(days: int) -> float:
     if days >= 30:
@@ -93,12 +93,11 @@ def calculate_discount(days: int) -> float:
     else:
         return 0.0
 
-@app.get("/app/rent", response_class=HTMLResponse)
+@router.get("/rent", response_class=HTMLResponse)
 async def rent_page(request: Request):
     return templates.TemplateResponse("rent.html", {"request": request, "motorcycles": motorcycles})
 
-#Обработчик заказа на аренду
-@app.post("/app/rent")
+@router.post("/rent")
 async def process_rent(request: Request):
     data = await request.json()
     user_id = data.get("user_id")
@@ -108,7 +107,6 @@ async def process_rent(request: Request):
     if not user_id or not phone or not motorcycle:
         return JSONResponse(status_code=400, content={"error": "Invalid request"})
 
-    # Формируем сообщение о заказе
     message = (
         f"Новый заказ на аренду мотоцикла\n\n"
         f"Пользователь ID: {user_id}\n"
@@ -117,11 +115,12 @@ async def process_rent(request: Request):
         f"Цена: {motorcycle['price']}\n"
         f"Депозит: {motorcycle['deposit']}"
     )
-    # Отправляем уведомление в Telegram менеджеру (EMPLOYEE_CHAT_ID)
+
     await bot.send_message(EMPLOYEE_CHAT_ID, message)
+    print(message)
     return JSONResponse(status_code=200, content={"message": "Заказ успешно оформлен"})
 
-@app.get("/app/calendar", response_class=HTMLResponse)
+@router.get("/calendar", response_class=HTMLResponse)
 async def calendar_page(request: Request, moto: str = "", user_id: str = "", phone: str = ""):
     return templates.TemplateResponse("calendar.html", {
         "request": request,
@@ -130,7 +129,7 @@ async def calendar_page(request: Request, moto: str = "", user_id: str = "", pho
         "phone": phone
     })
 
-@app.post("/app/confirm")
+@router.post("/confirm")
 async def confirm_rental(rental: RentalRequest):
     moto_info = motorcycle_data.get(rental.motorcycle)
     if not moto_info:
@@ -149,24 +148,23 @@ async def confirm_rental(rental: RentalRequest):
     days = math.ceil(duration)
 
     discount_rate = calculate_discount(days)
-    discount_amount = days * moto_info["price"] * discount_rate
-    total_price = days * moto_info["price"] - discount_amount
+    total_price = days * moto_info["price"] * (1 - discount_rate)
 
     message = (
         f"Новый заказ на аренду мотоцикла:\n\n"
         f"Пользователь ID: {rental.user_id}\n"
         f"Телефон: {rental.phone}\n"
         f"Мотоцикл: {rental.motorcycle}\n"
-        f"Период: {start_dt.strftime('%d.%m.%Y %H:%M')} — {end_dt.strftime('%d.%m.%Y %H:%M')}\n"
-        f"Кол-во суток: {days}\n"
-        f"Цена за сутки: {moto_info['price']:,} руб.\n"
+        f"Период: {start_dt.strftime('%d.%m.%Y')} — {end_dt.strftime('%d.%m.%Y')}\n"
+        f"Дней: {days}\n"
         f"Скидка: {int(discount_rate * 100)}%\n"
-        f"Итоговая стоимость: {int(total_price):,} руб.\n"
+        f"Итоговая цена: {int(total_price):,} руб.\n"
         f"Залог: {moto_info['deposit']:,} руб."
     )
 
     await bot.send_message(EMPLOYEE_CHAT_ID, message)
-
+    print(message)
     return JSONResponse(status_code=200, content={"message": "Заказ успешно оформлен"})
 
+# 👇 ВАЖНО: подключаем маршруты с префиксом /app
 app.include_router(router, prefix="/app")
