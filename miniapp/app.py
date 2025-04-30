@@ -3,12 +3,14 @@ from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import JSONResponse
+from fastapi import APIRouter
 from pydantic import BaseModel
 from datetime import datetime
 import math
 
 
 app = FastAPI()
+router = APIRouter()
 
 # Подключаем папку с шаблонами и статикой
 templates = Jinja2Templates(directory="miniapp/templates")
@@ -166,3 +168,5 @@ async def confirm_rental(rental: RentalRequest):
     await bot.send_message(EMPLOYEE_CHAT_ID, message)
 
     return JSONResponse(status_code=200, content={"message": "Заказ успешно оформлен"})
+
+app.include_router(router, prefix="/app")
