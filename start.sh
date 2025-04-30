@@ -18,5 +18,5 @@ nohup python3 "$BOT_PATH" > "$BOT_LOG" 2>&1 &
 echo "Бот запущен. Лог: $BOT_LOG"
 
 echo "Запуск FastAPI backend..."
-nohup uvicorn miniapp.main:app --host 0.0.0.0 --port 8000 > "$API_LOG" 2>&1 &
+nohup uvicorn miniapp.app:app --host 0.0.0.0 --port 8000 > "$API_LOG" 2>&1 &
 echo "Backend запущен. Лог: $API_LOG"

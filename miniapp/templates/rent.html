@@ -222,7 +222,11 @@
     <div class="swiper">
       <div class="swiper-wrapper">
         {% for moto in motorcycles %}
-        <div class="swiper-slide" onclick="openModal(this)" data-description="{{ moto.description }}" data-specs="{{ moto.specs }}">
+        <div class="swiper-slide"
+             onclick="openModal(this)"
+             data-name="{{ moto.name }}"
+             data-description="{{ moto.description | default('Описание недоступно.') }}"
+             data-specs="{{ moto.specs | default('') }}">
           <div class="img-wrapper">
             <img src="{{ moto.image }}" alt="{{ moto.name }}" />
           </div>
@@ -241,7 +245,7 @@
 
     <div class="buttons">
       <button class="button back" onclick="window.history.back();">Назад</button>
-      <button class="button continue" onclick="continueRent();">Продолжить</button>
+      <button class="button continue" onclick="goToCalendar();">Продолжить</button>
     </div>
   </div>
 
@@ -253,6 +257,7 @@
     </p>
   </footer>
 
+  <!-- Модальное окно -->
   <div id="modal" class="modal">
     <div class="modal-content">
       <span class="close" onclick="closeModal()">&times;</span>
@@ -322,7 +327,7 @@
     });
 
     function openModal(el) {
-      const title = el.querySelector("h2").textContent;
+      const title = el.dataset.name || "Без названия";
       const desc = el.dataset.description || "Описание недоступно.";
       const specs = el.dataset.specs || "";
 
@@ -340,6 +345,18 @@
       alert("Вы выбрали: " + document.getElementById("modal-title").textContent);
       closeModal();
     }
+
+    function goToCalendar() {
+      const activeSlide = document.querySelector(".swiper-slide-active");
+      const motoName = activeSlide.querySelector("h2").innerText;
+      const params = new URLSearchParams(window.location.search);
+      const user_id = params.get("user_id");
+      const phone = params.get("phone");
+
+      const url = `/calendar?user_id=${encodeURIComponent(user_id)}&phone=${encodeURIComponent(phone)}&moto=${encodeURIComponent(motoName)}`;
+      window.location.href = url;
+     }
+
   </script>
 </body>
 </html>
