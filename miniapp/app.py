@@ -3,6 +3,10 @@ from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import JSONResponse
+from pydantic import BaseModel
+from datetime import datetime
+import math
+
 
 app = FastAPI()
 
@@ -62,6 +66,31 @@ motorcycles = [
     }
 ]
 
+motorcycle_data = {
+    "BMW R 1250 GS": {"price": 15000, "deposit": 50000},
+    "BMW R 1250 RT": {"price": 18000, "deposit": 50000},
+    "BMW R 18": {"price": 18000, "deposit": 50000},
+}
+
+class RentalRequest(BaseModel):
+    user_id: str
+    phone: str
+    motorcycle: str
+    start: str  # Формат: 'YYYY-MM-DDTHH:MM'
+    end: str    # Формат: 'YYYY-MM-DDTHH:MM'
+
+def calculate_discount(days: int) -> float:
+    if days >= 30:
+        return 0.25
+    elif days >= 20:
+        return 0.20
+    elif days >= 11:
+        return 0.15
+    elif days >= 7:
+        return 0.10
+    else:
+        return 0.0
+
 @app.get("/rent", response_class=HTMLResponse)
 async def rent_page(request: Request):
     return templates.TemplateResponse("rent.html", {"request": request, "motorcycles": motorcycles})
@@ -90,8 +119,50 @@ async def process_rent(request: Request):
     await bot.send_message(EMPLOYEE_CHAT_ID, message)
     return JSONResponse(status_code=200, content={"message": "Заказ успешно оформлен"})
 
-#Убирает предупреждение
-@app.get("/rent", response_class=HTMLResponse)
-async def rent_page(request: Request):
-    headers = {"ngrok-skip-browser-warning": "true"}  # Добавляем заголовок
-    return templates.TemplateResponse("rent.html", {"request": request, "motorcycles": motorcycles}, headers=headers)
+@app.get("/calendar", response_class=HTMLResponse)
+async def calendar_page(request: Request, moto: str = "", user_id: str = "", phone: str = ""):
+    return templates.TemplateResponse("calendar.html", {
+        "request": request,
+        "moto": moto,
+        "user_id": user_id,
+        "phone": phone
+    })
+
+@app.post("/confirm")
+async def confirm_rental(rental: RentalRequest):
+    moto_info = motorcycle_data.get(rental.motorcycle)
+    if not moto_info:
+        return JSONResponse(status_code=400, content={"error": "Unknown motorcycle"})
+
+    try:
+        start_dt = datetime.fromisoformat(rental.start)
+        end_dt = datetime.fromisoformat(rental.end)
+    except ValueError:
+        return JSONResponse(status_code=400, content={"error": "Invalid date format"})
+
+    if end_dt <= start_dt:
+        return JSONResponse(status_code=400, content={"error": "End date must be after start date"})
+
+    duration = (end_dt - start_dt).total_seconds() / (24 * 3600)
+    days = math.ceil(duration)
+
+    discount_rate = calculate_discount(days)
+    discount_amount = days * moto_info["price"] * discount_rate
+    total_price = days * moto_info["price"] - discount_amount
+
+    message = (
+        f"Новый заказ на аренду мотоцикла:\n\n"
+        f"Пользователь ID: {rental.user_id}\n"
+        f"Телефон: {rental.phone}\n"
+        f"Мотоцикл: {rental.motorcycle}\n"
+        f"Период: {start_dt.strftime('%d.%m.%Y %H:%M')} — {end_dt.strftime('%d.%m.%Y %H:%M')}\n"
+        f"Кол-во суток: {days}\n"
+        f"Цена за сутки: {moto_info['price']:,} руб.\n"
+        f"Скидка: {int(discount_rate * 100)}%\n"
+        f"Итоговая стоимость: {int(total_price):,} руб.\n"
+        f"Залог: {moto_info['deposit']:,} руб."
+    )
+
+    await bot.send_message(EMPLOYEE_CHAT_ID, message)
+
+    return JSONResponse(status_code=200, content={"message": "Заказ успешно оформлен"})

@@ -245,7 +245,7 @@
 
     <div class="buttons">
       <button class="button back" onclick="window.history.back();">Назад</button>
-      <button class="button continue" onclick="continueRent();">Продолжить</button>
+      <button class="button continue" onclick="goToCalendar();">Продолжить</button>
     </div>
   </div>
 
@@ -345,6 +345,18 @@
       alert("Вы выбрали: " + document.getElementById("modal-title").textContent);
       closeModal();
     }
+
+    function goToCalendar() {
+      const activeSlide = document.querySelector(".swiper-slide-active");
+      const motoName = activeSlide.querySelector("h2").innerText;
+      const params = new URLSearchParams(window.location.search);
+      const user_id = params.get("user_id");
+      const phone = params.get("phone");
+
+      const url = `/calendar?user_id=${encodeURIComponent(user_id)}&phone=${encodeURIComponent(phone)}&moto=${encodeURIComponent(motoName)}`;
+      window.location.href = url;
+     }
+
   </script>
 </body>
 </html>

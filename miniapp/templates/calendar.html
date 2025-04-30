@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Оформление аренды</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f8f8f8;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    header, footer {
+      width: 100%;
+      max-width: 420px;
+      background-color: #fff;
+      padding: 10px;
+      text-align: center;
+      font-size: 12px;
+    }
+
+    .content {
+      width: 100%;
+      max-width: 420px;
+      padding: 20px;
+      background-color: #fff;
+      text-align: center;
+    }
+
+    h1 {
+      font-size: 20px;
+      margin-bottom: 20px;
+    }
+
+    label {
+      display: block;
+      margin: 10px 0 5px;
+      font-size: 14px;
+    }
+
+    input[type="datetime-local"] {
+      width: 100%;
+      padding: 8px;
+      margin-bottom: 15px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+
+    .buttons {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 20px;
+    }
+
+    .button {
+      flex: 1;
+      padding: 12px;
+      margin: 0 5px;
+      font-size: 16px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    .back {
+      background-color: #d3d3d3;
+    }
+
+    .continue {
+      background-color: #e63946;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h2>Аренда мотоциклов / Мотоэвакуация</h2>
+  <p><strong>+7 (499) 460-47-08</strong><br>sales@lomovtravel.com</p>
+</header>
+
+<div class="content">
+  <h1>Оформление аренды</h1>
+  <p><strong>Мотоцикл:</strong> {{ moto }}</p>
+
+  <label for="start">Начало аренды:</label>
+  <input type="datetime-local" id="start" name="start">
+
+  <label for="end">Окончание аренды:</label>
+  <input type="datetime-local" id="end" name="end">
+
+  <div class="buttons">
+    <button class="button back" onclick="history.back()">Назад</button>
+    <button class="button continue" onclick="submitForm()">Продолжить</button>
+  </div>
+</div>
+
+<footer>
+  <p>
+    Телефон: +7 (499) 460-47-08 | Email: sales@lomovtravel.com | Адрес: ул. Автозаводская, д.8
+  </p>
+</footer>
+
+<script>
+  function submitForm() {
+    const start = document.getElementById("start").value;
+    const end = document.getElementById("end").value;
+    const moto = "{{ moto }}";
+    const user_id = "{{ user_id }}";
+    const phone = "{{ phone }}";
+
+    if (!start || !end) {
+      alert("Пожалуйста, выберите даты аренды.");
+      return;
+    }
+
+    const data = {
+      user_id: user_id,
+      phone: phone,
+      motorcycle: moto,
+      start: start,
+      end: end
+    };
+
+    fetch("https://motorentalbot.com/confirm", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(data),
+    })
+      .then((r) => r.json())
+      .then((res) => {
+        alert("Бронирование отправлено!");
+        // window.location.href = "/thankyou"; // если нужен редирект
+      })
+      .catch((err) => console.error(err));
+  }
+</script>
+
+</body>
+</html>
