@@ -417,7 +417,8 @@ async def route_dialog(message: types.Message, state: FSMContext):
     builder.row(types.InlineKeyboardButton(text="Хочу уточнить детали", callback_data="continue_route"))
     builder.row(types.InlineKeyboardButton(text="Завершить составление маршрута", callback_data="finish_route"))
     keyboard = builder.as_markup()
-    await message.answer(response, reply_markup=keyboard)
+    await send_long_message(message.chat.id, response, reply_markup=keyboard)
+
 
 # Обработчик для кнопки "Завершить составление маршрута"
 @dp.callback_query(F.data == "finish_route")
