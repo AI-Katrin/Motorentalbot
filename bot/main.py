@@ -448,15 +448,16 @@ async def fallback_handler(message: types.Message, state: FSMContext):
         return
     await send_main_menu(message.chat.id)
 
-
 async def main():
-    logging.info(f"Используем прокси: {OPENAI_PROXY}")
+    global aclient
 
-    async with httpx.AsyncClient(proxies=OPENAI_PROXY) as http_client:
-        aclient = AsyncOpenAI(api_key=OPENAI_API_KEY, http_client=http_client)
+    logging.info(f"🟢 Используем прокси: {OPENAI_PROXY}")
 
-        await dp.start_polling(bot)
+    http_client = httpx.AsyncClient(proxies=OPENAI_PROXY)
+    aclient = AsyncOpenAI(api_key=OPENAI_API_KEY, http_client=http_client)
 
+
+    await dp.start_polling(bot)
 
 if __name__ == "__main__":
     asyncio.run(main())
