@@ -13,34 +13,18 @@ from config import BOT_TOKEN, MINIAPP_URL, EMPLOYEE_CHAT_ID, OPENAI_PROXY, OPENA
 from dotenv import load_dotenv
 import aiohttp
 from aiohttp_socks import ProxyConnector
+from aiohttp import ClientSession
 import httpx
 import logging
+
+
 logging.basicConfig(level=logging.INFO)
-
-
 
 bot = Bot(token=BOT_TOKEN)
 storage = MemoryStorage()
 dp = Dispatcher(storage=storage)
 
-http_client = None
-aclient = None
-
-#if OPENAI_PROXY:
-#    logging.info(f"🟢 Используем прокси: {OPENAI_PROXY}")
-#    transport = httpx.AsyncHTTPTransport(proxy=OPENAI_PROXY)
-#    http_client = httpx.AsyncClient(transport=transport)
-#else:
-#    logging.info("🟢 Без прокси")
-#    http_client = httpx.AsyncClient()
-
-logging.info("🟢 Тестируем без прокси")
-http_client = httpx.AsyncClient()
-
-aclient = AsyncOpenAI(
-    api_key=OPENAI_API_KEY,
-    http_client=http_client
-)
+aclient = None  # объявим глобально
 
 # Определяем состояния для процесса заявки
 class UrgentRequestFSM(StatesGroup):
@@ -151,6 +135,14 @@ async def get_chatgpt_response(prompt: str, state: FSMContext) -> str:
     except Exception as e:
         return f"Ошибка при обращении к ChatGPT: {e}"
 
+MAX_MESSAGE_LENGTH = 4000
+
+async def send_long_message(chat_id: int, text: str, reply_markup=None):
+    chunks = [text[i:i+MAX_MESSAGE_LENGTH] for i in range(0, len(text), MAX_MESSAGE_LENGTH)]
+    for i, chunk in enumerate(chunks):
+        # Клавиатура только к последнему сообщению
+        markup = reply_markup if i == len(chunks) - 1 else None
+        await bot.send_message(chat_id, chunk, reply_markup=markup)
 
 # Расширяем функцию отправки главного меню, добавляя новую кнопку
 async def send_main_menu(chat_id: int):
@@ -391,24 +383,24 @@ async def process_callback_comment(message: types.Message, state: FSMContext):
     await bot.send_message(EMPLOYEE_CHAT_ID, notify_text)
     await state.clear()
 
-# Обработчик для кнопки "Маршрут для путешествия"
+
 @dp.callback_query(F.data == "route")
 async def process_route(callback_query: types.CallbackQuery, state: FSMContext):
     await bot.answer_callback_query(callback_query.id)
-    # Устанавливаем состояние диалога с маршрутом
     await state.set_state(RouteFSM.in_dialog)
-    # Исходное сообщение-промпт
     initial_prompt = (
         "Расскажите максимально подробно о своем маршруте: откуда и куда планируете поехать, даты поездки, модель мотоцикла. "
         "Укажите все детали, которые могут показаться вам важными при составлении маршрута."
     )
     response = await get_chatgpt_response(initial_prompt, state)
-    # Inline-клавиатура для продолжения или завершения диалога
+
     builder = InlineKeyboardBuilder()
     builder.row(types.InlineKeyboardButton(text="Хочу уточнить детали", callback_data="continue_route"))
     builder.row(types.InlineKeyboardButton(text="Завершить составление маршрута", callback_data="finish_route"))
     keyboard = builder.as_markup()
-    await bot.send_message(callback_query.from_user.id, response, reply_markup=keyboard)
+
+    await send_long_message(callback_query.from_user.id, response, reply_markup=keyboard)
+
 
 # Обработчик для кнопки "Хочу уточнить детали"
 @dp.callback_query(F.data == "continue_route")
@@ -456,14 +448,16 @@ async def fallback_handler(message: types.Message, state: FSMContext):
         return
     await send_main_menu(message.chat.id)
 
+
 async def main():
-    global http_client, aclient
+    global aclient
 
-    try:
-        logging.info("Запускаем бота")
+    logging.info(f"Используем прокси: {OPENAI_PROXY}")
+
+    connector = ProxyConnector.from_url(OPENAI_PROXY)
+    async with ClientSession(connector=connector) as session:
+        aclient = AsyncOpenAI(api_key=OPENAI_API_KEY, http_client=session)
         await dp.start_polling(bot)
-    finally:
-        await http_client.aclose()
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     asyncio.run(main())
