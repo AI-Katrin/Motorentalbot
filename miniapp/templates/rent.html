@@ -347,19 +347,31 @@
     }
 
     function goToCalendar() {
-      const activeSlide = document.querySelector(".swiper-slide-active");
-      const motoName = activeSlide.querySelector("h2").innerText;
-      const motoDeposit = activeSlide.querySelectorAll("p")[1].innerText.replace("Залог: ", "").replace(" руб.", "");
-      const motoPrice = activeSlide.querySelectorAll("p")[0].innerText.replace("Стоимость: ", "").replace(" / сутки", "").replace(" руб.", "");
+  const activeSlide = document.querySelector(".swiper-slide-active");
+  const motoName = activeSlide.querySelector("h2").innerText;
 
-      const params = new URLSearchParams(window.location.search);
-      const user_id = params.get("user_id");
-      const phone = params.get("phone");
+  const depositRaw = activeSlide.querySelectorAll("p")[1].innerText
+    .replace("Залог: ", "")
+    .replace(" руб.", "")
+    .replace(/\s/g, "");
+  const deposit = Number(depositRaw);
 
-      const url = `/app/calendar?user_id=${encodeURIComponent(user_id)}&phone=${encodeURIComponent(phone)}&moto=${encodeURIComponent(motoName)}&deposit=${encodeURIComponent(motoDeposit)}&price_per_day=${encodeURIComponent(motoPrice)}`;
+  const priceRaw = activeSlide.querySelectorAll("p")[0].innerText
+    .replace("Стоимость: ", "")
+    .replace(" / сутки", "")
+    .replace(" руб.", "")
+    .replace(/\s/g, "");
+  const price_per_day = Number(priceRaw);
 
-      window.location.href = url;
-    }
+  const params = new URLSearchParams(window.location.search);
+  const user_id = params.get("user_id");
+  const phone = params.get("phone");
+
+  const url = `/app/calendar?user_id=${encodeURIComponent(user_id)}&phone=${encodeURIComponent(phone)}&moto=${encodeURIComponent(motoName)}&deposit=${deposit}&price_per_day=${price_per_day}`;
+
+  window.location.href = url;
+}
+
 
 
   </script>
