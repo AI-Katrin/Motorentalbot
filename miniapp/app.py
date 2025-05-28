@@ -11,6 +11,8 @@ import math
 
 app = FastAPI()
 router = APIRouter()
+bot = Bot(token=BOT_TOKEN)
+
 
 # Подключаем папку с шаблонами и статикой
 templates = Jinja2Templates(directory="miniapp/templates")
@@ -148,17 +150,18 @@ async def confirm_rental(rental: RentalRequest):
     days = math.ceil(duration)
 
     discount_rate = calculate_discount(days)
-    total_price = days * moto_info["price"] * (1 - discount_rate)
+    base_price = days * moto_info["price"]
+    discounted_price = base_price * (1 - discount_rate)
 
     message = (
-        f"Новый заказ на аренду мотоцикла:\n\n"
-        f"Пользователь ID: {rental.user_id}\n"
-        f"Телефон: {rental.phone}\n"
+        f"Новая заявка на аренду мотоцикла:\n\n"
         f"Мотоцикл: {rental.motorcycle}\n"
-        f"Период: {start_dt.strftime('%d.%m.%Y')} — {end_dt.strftime('%d.%m.%Y')}\n"
-        f"Дней: {days}\n"
-        f"Скидка: {int(discount_rate * 100)}%\n"
-        f"Итоговая цена: {int(total_price):,} руб.\n"
+        f"Начало: {start_dt.strftime('%d.%m.%Y')}\n"
+        f"Окончание: {end_dt.strftime('%d.%m.%Y')}\n"
+        f"Телефон: {rental.phone}\n"
+        f"Telegram ID: {rental.user_id}\n"
+        f"Без скидки: {int(base_price):,} руб.\n"
+        f"Со скидкой: {int(discounted_price):,} руб.\n"
         f"Залог: {moto_info['deposit']:,} руб."
     )
 
@@ -166,5 +169,6 @@ async def confirm_rental(rental: RentalRequest):
     print(message)
     return JSONResponse(status_code=200, content={"message": "Заказ успешно оформлен"})
 
-# 👇 ВАЖНО: подключаем маршруты с префиксом /app
+
+# Подключаем маршруты с префиксом /app
 app.include_router(router, prefix="/app")

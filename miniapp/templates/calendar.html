@@ -92,13 +92,16 @@
 
 <div class="content">
   <h1>Оформление аренды</h1>
-  <p><strong>Мотоцикл:</strong> {{ moto }}</p>
+  <p><strong>Мотоцикл:</strong> <span id="moto-display"></span></p>
 
   <label for="start">Начало аренды:</label>
   <input type="datetime-local" id="start" name="start">
 
   <label for="end">Окончание аренды:</label>
   <input type="datetime-local" id="end" name="end">
+
+  <input type="hidden" id="user_id" name="user_id" value="">
+  <input type="hidden" id="phone" name="phone" value="">
 
   <div id="price-summary">
     <p>Стоимость (без скидки): <span id="base-price">—</span> руб.</p>
@@ -190,6 +193,55 @@
       })
       .catch((err) => console.error(err));
   }
+
+  // Функция для получения параметров из URL
+function getQueryParams() {
+  const params = {};
+  window.location.search.substring(1).split("&").forEach(pair => {
+    const [key, value] = pair.split("=");
+    params[decodeURIComponent(key)] = decodeURIComponent(value || "");
+  });
+  return params;
+}
+
+// Автоматически вызываем после загрузки страницы
+window.addEventListener('DOMContentLoaded', () => {
+  const params = getQueryParams();
+
+  // Заполняем текстовое поле "Мотоцикл"
+  if (params['moto']) {
+    // Здесь ваш <p><strong>Мотоцикл:</strong> {{ moto }}</p> - заменить на id для доступа
+    const motoElements = document.querySelectorAll('p strong + span, p strong + text, p');
+    // Проще — заменим на элемент с id или классом
+    // Например, сделайте <p><strong>Мотоцикл:</strong> <span id="moto-display"></span></p>
+    const motoDisplay = document.getElementById('moto-display');
+    if (motoDisplay) {
+      motoDisplay.textContent = params['moto'];
+    }
+  }
+
+  // Заполнить поля даты start и end
+  if (params['start']) {
+    document.getElementById('start').value = params['start'];
+  }
+  if (params['end']) {
+    document.getElementById('end').value = params['end'];
+  }
+
+  // Если хотите, то можете заполнить скрытые поля user_id и phone для отправки
+  if (params['user_id']) {
+    const el = document.getElementById('user_id');
+    if (el) el.value = params['user_id'];
+  }
+  if (params['phone']) {
+    const el = document.getElementById('phone');
+    if (el) el.value = params['phone'];
+  }
+
+  // Запуск пересчета цены сразу при загрузке
+  calculatePrice();
+});
+
 </script>
 
 </body>
