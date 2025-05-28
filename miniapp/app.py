@@ -93,8 +93,7 @@ def calculate_discount(days: int) -> float:
         return 0.15
     elif days >= 7:
         return 0.10
-    else:
-        return 0.0
+    return 0.0
 
 @router.get("/rent", response_class=HTMLResponse)
 async def rent_page(request: Request):
@@ -105,18 +104,19 @@ async def process_rent(request: Request):
     data = await request.json()
     user_id = data.get("user_id")
     phone = data.get("phone")
-    motorcycle = data.get("motorcycle")
+    moto_name = data.get("motorcycle")
+    moto_info = motorcycle_data.get(moto_name)
 
-    if not user_id or not phone or not motorcycle:
+    if not user_id or not phone or not moto_info:
         return JSONResponse(status_code=400, content={"error": "Invalid request"})
 
     message = (
         f"Новый заказ на аренду мотоцикла\n\n"
         f"Пользователь ID: {user_id}\n"
         f"Телефон: {phone}\n"
-        f"Мотоцикл: {motorcycle['name']}\n"
-        f"Цена: {motorcycle['price']}\n"
-        f"Депозит: {motorcycle['deposit']}"
+        f"Мотоцикл: {moto_name}\n"
+        f"Цена: {moto_info['price']:,} руб.\n"
+        f"Депозит: {moto_info['deposit']:,} руб."
     )
 
     await bot.send_message(EMPLOYEE_CHAT_ID, message)
@@ -125,11 +125,13 @@ async def process_rent(request: Request):
 
 @router.get("/calendar", response_class=HTMLResponse)
 async def calendar_page(request: Request, moto: str = "", user_id: str = "", phone: str = ""):
+    price_info = motorcycle_data.get(moto, {"price": 0, "deposit": 0})
     return templates.TemplateResponse("calendar.html", {
         "request": request,
         "moto": moto,
         "user_id": user_id,
-        "phone": phone
+        "phone": phone,
+        "price_per_day": price_info["price"]
     })
 
 @router.post("/confirm")
@@ -147,9 +149,7 @@ async def confirm_rental(rental: RentalRequest):
     if end_dt <= start_dt:
         return JSONResponse(status_code=400, content={"error": "End date must be after start date"})
 
-    duration = (end_dt - start_dt).total_seconds() / (24 * 3600)
-    days = math.ceil(duration)
-
+    days = math.ceil((end_dt - start_dt).total_seconds() / (24 * 3600))
     discount_rate = calculate_discount(days)
     base_price = days * moto_info["price"]
     discounted_price = base_price * (1 - discount_rate)
@@ -170,6 +170,16 @@ async def confirm_rental(rental: RentalRequest):
     print(message)
     return JSONResponse(status_code=200, content={"message": "Заказ успешно оформлен"})
 
+@router.get("/services", response_class=HTMLResponse)
+async def services_page(request: Request, moto: str = "", start: str = "", end: str = "", user_id: str = "", phone: str = ""):
+    return templates.TemplateResponse("services.html", {
+        "request": request,
+        "moto": moto,
+        "start": start,
+        "end": end,
+        "user_id": user_id,
+        "phone": phone
+    })
 
-# Подключаем маршруты с префиксом /app
+# Подключаем маршруты
 app.include_router(router, prefix="/app")

@@ -156,6 +156,7 @@
 
   document.addEventListener("DOMContentLoaded", () => {
     const params = getQueryParams();
+
     if (params.moto) document.getElementById("moto").textContent = params.moto;
     if (params.start && params.end) {
       const startDate = new Date(params.start);
@@ -164,20 +165,31 @@
       const periodStr = `${startDate.toLocaleString("ru-RU", options)} - ${endDate.toLocaleString("ru-RU", options)}`;
       document.getElementById("period").textContent = periodStr;
     }
-     if (params.deposit) {
+
+    if (params.deposit) {
       const el = document.getElementById("deposit");
       if (el) el.value = params.deposit;
     }
-
   });
 
   document.getElementById("rental-form").addEventListener("submit", function(event) {
     event.preventDefault();
 
     const params = getQueryParams();
-
     const selectedServices = Array.from(document.querySelectorAll('input[name="services"]:checked'))
       .map(cb => cb.value);
+
+    // Расчёт дополнительной стоимости за выбранные услуги (напр. Низкое сиденье)
+    let extraPrice = 0;
+    const start = new Date(params.start);
+    const end = new Date(params.end);
+    const days = Math.max(1, Math.ceil((end - start) / (1000 * 60 * 60 * 24)));
+
+    selectedServices.forEach(service => {
+      if (service.includes("Низкое сиденье")) {
+        extraPrice += 1000 * days;
+      }
+    });
 
     const data = {
       user_id: params.user_id || "",
@@ -200,13 +212,17 @@
     url.searchParams.set("services", data.services.join(","));
     url.searchParams.set("equipment_details", data.equipment_details);
     url.searchParams.set("delivery_address", data.delivery_address);
-    url.searchParams.set("deposit", data.deposit || params.deposit || "");
-    url.searchParams.set("comments", data.additional_comments)
-    ;
+    url.searchParams.set("deposit", params.deposit || "");
+    url.searchParams.set("base_price", params.base_price || "");
+    url.searchParams.set("price_per_day", params.price_per_day || "");
+    url.searchParams.set("discounted_price", params.discounted_price || "");
+    url.searchParams.set("extra_services_price", extraPrice.toString());
+    url.searchParams.set("comments", data.additional_comments);
 
     window.location.href = url;
   });
 </script>
+
 
 
 </body>

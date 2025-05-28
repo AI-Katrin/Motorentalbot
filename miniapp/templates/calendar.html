@@ -14,7 +14,6 @@
       flex-direction: column;
       align-items: center;
     }
-
     header, footer {
       width: 100%;
       max-width: 420px;
@@ -23,7 +22,6 @@
       text-align: center;
       font-size: 12px;
     }
-
     .content {
       width: 100%;
       max-width: 420px;
@@ -31,18 +29,15 @@
       background-color: #fff;
       text-align: center;
     }
-
     h1 {
       font-size: 20px;
       margin-bottom: 20px;
     }
-
     label {
       display: block;
       margin: 10px 0 5px;
       font-size: 14px;
     }
-
     input[type="datetime-local"] {
       width: 100%;
       padding: 8px;
@@ -50,19 +45,16 @@
       border: 1px solid #ccc;
       border-radius: 5px;
     }
-
     #price-summary {
       margin-top: 15px;
       font-size: 14px;
       text-align: left;
     }
-
     .buttons {
       display: flex;
       justify-content: space-between;
       margin-top: 20px;
     }
-
     .button {
       flex: 1;
       padding: 12px;
@@ -72,11 +64,9 @@
       border-radius: 8px;
       cursor: pointer;
     }
-
     .back {
       background-color: #d3d3d3;
     }
-
     .continue {
       background-color: #e63946;
       color: white;
@@ -92,16 +82,16 @@
 
 <div class="content">
   <h1>Оформление аренды</h1>
-  <p><strong>Мотоцикл:</strong> <span id="moto-display"></span></p>
+  <p><strong>Мотоцикл:</strong> <span id="moto-display">{{ moto }}</span></p>
 
   <label for="start">Начало аренды:</label>
-  <input type="datetime-local" id="start" name="start">
+  <input type="datetime-local" id="start" name="start" readonly step="1800">
 
   <label for="end">Окончание аренды:</label>
-  <input type="datetime-local" id="end" name="end">
+  <input type="datetime-local" id="end" name="end" readonly step="1800">
 
-  <input type="hidden" id="user_id" name="user_id" value="">
-  <input type="hidden" id="phone" name="phone" value="">
+  <input type="hidden" id="user_id" name="user_id" value="{{ user_id }}">
+  <input type="hidden" id="phone" name="phone" value="{{ phone }}">
 
   <div id="price-summary">
     <p>Стоимость (без скидки): <span id="base-price">—</span> руб.</p>
@@ -121,18 +111,11 @@
 </footer>
 
 <script>
-  const prices = {
-    "BMW R 1250 GS": 15000,
-    "BMW R 1250 RT": 18000,
-    "BMW R 18": 18000
-  };
-
   function calculatePrice() {
     const start = new Date(document.getElementById("start").value);
     const end = new Date(document.getElementById("end").value);
     const baseEl = document.getElementById("base-price");
     const discountedEl = document.getElementById("discounted-price");
-    const moto = "{{ moto }}";
 
     if (isNaN(start.getTime()) || isNaN(end.getTime()) || end <= start) {
       baseEl.textContent = "—";
@@ -141,7 +124,7 @@
     }
 
     const days = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
-    const pricePerDay = prices[moto] || 0;
+    const pricePerDay = parseInt("{{ price_per_day }}");
     const base = days * pricePerDay;
 
     let discount = 0;
@@ -151,20 +134,16 @@
     else if (days >= 7) discount = 0.10;
 
     const discounted = Math.round(base * (1 - discount));
-
     baseEl.textContent = base.toLocaleString("ru-RU");
     discountedEl.textContent = discounted.toLocaleString("ru-RU");
   }
 
-  document.getElementById("start").addEventListener("change", calculatePrice);
-  document.getElementById("end").addEventListener("change", calculatePrice);
-
   function submitForm() {
     const start = document.getElementById("start").value;
     const end = document.getElementById("end").value;
-    const moto = "{{ moto }}";
-    const user_id = "{{ user_id }}";
-    const phone = "{{ phone }}";
+    const moto = document.getElementById("moto-display").textContent;
+    const user_id = document.getElementById("user_id").value;
+    const phone = document.getElementById("phone").value;
 
     if (!start || !end) {
       alert("Пожалуйста, выберите даты аренды.");
@@ -179,69 +158,24 @@
       end
     };
 
-    fetch("https://motorentalbot.com/app/confirm", {
+    fetch("/app/confirm", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
     })
-      .then((r) => r.json())
-      .then((res) => {
-        alert("Бронирование отправлено!");
-        // window.location.href = "/thankyou";
-      })
-      .catch((err) => console.error(err));
+    .then((r) => r.json())
+    .then((res) => {
+      const queryParams = new URLSearchParams({ moto, start, end, user_id, phone }).toString();
+      window.location.href = `/app/services?${queryParams}`;
+    })
+    .catch((err) => {
+      console.error(err);
+      alert("Ошибка при оформлении заказа. Попробуйте снова.");
+    });
   }
 
-  // Функция для получения параметров из URL
-function getQueryParams() {
-  const params = {};
-  window.location.search.substring(1).split("&").forEach(pair => {
-    const [key, value] = pair.split("=");
-    params[decodeURIComponent(key)] = decodeURIComponent(value || "");
-  });
-  return params;
-}
-
-// Автоматически вызываем после загрузки страницы
-window.addEventListener('DOMContentLoaded', () => {
-  const params = getQueryParams();
-
-  // Заполняем текстовое поле "Мотоцикл"
-  if (params['moto']) {
-    // Здесь ваш <p><strong>Мотоцикл:</strong> {{ moto }}</p> - заменить на id для доступа
-    const motoElements = document.querySelectorAll('p strong + span, p strong + text, p');
-    // Проще — заменим на элемент с id или классом
-    // Например, сделайте <p><strong>Мотоцикл:</strong> <span id="moto-display"></span></p>
-    const motoDisplay = document.getElementById('moto-display');
-    if (motoDisplay) {
-      motoDisplay.textContent = params['moto'];
-    }
-  }
-
-  // Заполнить поля даты start и end
-  if (params['start']) {
-    document.getElementById('start').value = params['start'];
-  }
-  if (params['end']) {
-    document.getElementById('end').value = params['end'];
-  }
-
-  // Если хотите, то можете заполнить скрытые поля user_id и phone для отправки
-  if (params['user_id']) {
-    const el = document.getElementById('user_id');
-    if (el) el.value = params['user_id'];
-  }
-  if (params['phone']) {
-    const el = document.getElementById('phone');
-    if (el) el.value = params['phone'];
-  }
-
-  // Запуск пересчета цены сразу при загрузке
-  calculatePrice();
-});
-
+  document.getElementById("start").addEventListener("change", calculatePrice);
+  document.getElementById("end").addEventListener("change", calculatePrice);
 </script>
 
 </body>

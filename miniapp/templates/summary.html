@@ -106,12 +106,6 @@
 </footer>
 
 <script>
-  const prices = {
-    "BMW R1250GS": 15000,
-    "BMW R 1250 RT": 18000,
-    "BMW R 18": 18000
-  };
-
   function getParams() {
     const params = new URLSearchParams(window.location.search);
     const result = {};
@@ -123,28 +117,42 @@
 
   function formatDate(dateStr) {
     const date = new Date(dateStr);
-    return date.toLocaleString("ru-RU", { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' });
+    return date.toLocaleString("ru-RU", {
+      day: '2-digit',
+      month: '2-digit',
+      year: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
   }
 
   function render() {
     const data = getParams();
 
+    const basePrice = Number(data.base_price || 0); // цена без скидки
+    const discountedPrice = Number(data.discounted_price || 0); // цена со скидкой
+    const deposit = Number(data.deposit || 0); // залог
+    const extraServicesPrice = Number(data.extra_services_price || 0); // доп. услуги
+
+    const total = discountedPrice + deposit + extraServicesPrice;
+
     document.getElementById("moto").textContent = data.moto || "-";
-    document.getElementById("period").textContent = `${formatDate(data.start)} - ${formatDate(data.end)}`;
+    document.getElementById("period").textContent = `${formatDate(data.start)} – ${formatDate(data.end)}`;
     document.getElementById("services").textContent = (data.services || "").replaceAll(",", ", ");
     document.getElementById("address").textContent = data.delivery_address || "—";
+
+    document.getElementById("rental").textContent = `${discountedPrice.toLocaleString("ru-RU")} руб.`;
     document.getElementById("deposit-display").textContent = `${deposit.toLocaleString("ru-RU")} руб.`;
-
-    const pricePerDay = prices[data.moto] || 0;
-    const days = Math.ceil((new Date(data.end) - new Date(data.start)) / (1000 * 60 * 60 * 24));
-    const rental = pricePerDay * days;
-    const deposit = 50000;
-    const total = rental + deposit;
-
-    document.getElementById("rental").textContent = `${rental.toLocaleString("ru-RU")} руб.`;
     document.getElementById("total").textContent = total.toLocaleString("ru-RU");
 
-    return { ...data, rental, deposit, total };
+    return {
+      ...data,
+      base_price: basePrice,
+      discounted_price: discountedPrice,
+      extra_services_price: extraServicesPrice,
+      deposit,
+      total
+    };
   }
 
   async function submitApplication() {
@@ -170,6 +178,8 @@
 
   render();
 </script>
+
+
 
 </body>
 </html>
