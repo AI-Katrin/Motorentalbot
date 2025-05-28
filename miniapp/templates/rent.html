@@ -349,13 +349,16 @@
     function goToCalendar() {
       const activeSlide = document.querySelector(".swiper-slide-active");
       const motoName = activeSlide.querySelector("h2").innerText;
+      const motoDeposit = activeSlide.querySelectorAll("p")[1].innerText.replace("Залог: ", "").replace(" руб.", "");
+
       const params = new URLSearchParams(window.location.search);
       const user_id = params.get("user_id");
       const phone = params.get("phone");
 
-      const url = `/app/calendar?user_id=${encodeURIComponent(user_id)}&phone=${encodeURIComponent(phone)}&moto=${encodeURIComponent(motoName)}`;
+      const url = `/app/calendar?user_id=${encodeURIComponent(user_id)}&phone=${encodeURIComponent(phone)}&moto=${encodeURIComponent(motoName)}&deposit=${encodeURIComponent(motoDeposit)}`;
       window.location.href = url;
-     }
+    }
+
 
   </script>
 </body>
