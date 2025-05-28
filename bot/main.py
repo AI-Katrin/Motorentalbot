@@ -16,7 +16,6 @@ from aiohttp_socks import ProxyConnector
 from aiohttp import ClientSession
 import httpx
 import logging
-from aiogram.fsm.state import
 
 logging.basicConfig(level=logging.INFO)
 
