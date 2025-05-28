@@ -101,8 +101,9 @@
   <label for="end">Окончание аренды:</label>
   <input type="datetime-local" id="end" name="end" step="1800">
 
-  <input type="hidden" id="user_id" name="user_id" value="{{ user_id }}">
-  <input type="hidden" id="phone" name="phone" value="{{ phone }}">
+  <input type="hidden" id="user_id">
+  <input type="hidden" id="phone">
+
 
   <div id="price-summary">
     <p>Количество суток: <span id="days-count">—</span> суток</p>
@@ -175,7 +176,6 @@
     discountedEl.textContent = discounted.toLocaleString("ru-RU");
     daysEl.textContent = days;
   }
-
         function submitForm() {
           const start = document.getElementById("start").value;
           const end = document.getElementById("end").value;
@@ -183,17 +183,30 @@
           const user_id = document.getElementById("user_id").value;
           const phone = document.getElementById("phone").value;
 
-          if (!start || !end) {
-            alert("Пожалуйста, выберите даты аренды.");
-            return;
-          }
-
           const priceWithoutDiscount = document.getElementById("base-price").textContent.replace(/\D/g, '');
           const priceWithDiscount = document.getElementById("discounted-price").textContent.replace(/\D/g, '');
 
           const params = getQueryParams();
           const deposit = params.deposit && !isNaN(Number(params.deposit)) ? params.deposit : "0";
           const pricePerDay = params.price_per_day && !isNaN(Number(params.price_per_day)) ? params.price_per_day : "0";
+
+          // ✅ лог ставим здесь:
+          console.log("Параметры:", {
+            moto,
+            start,
+            end,
+            user_id,
+            phone,
+            base_price: priceWithoutDiscount,
+            discounted_price: priceWithDiscount,
+            deposit,
+            price_per_day: pricePerDay
+          });
+
+          if (!start || !end) {
+            alert("Пожалуйста, выберите даты аренды.");
+            return;
+          }
 
           const queryParams = new URLSearchParams({
             moto,
@@ -210,15 +223,19 @@
           window.location.href = `/app/services?${queryParams}`;
         }
 
-
-
         document.addEventListener("DOMContentLoaded", () => {
           setMinDateInputs();
+
+          const params = getQueryParams();
+          if (params.user_id) document.getElementById("user_id").value = params.user_id;
+          if (params.phone) document.getElementById("phone").value = params.phone;
+
           document.getElementById("start").addEventListener("change", calculatePrice);
           document.getElementById("end").addEventListener("change", calculatePrice);
           document.getElementById("start").addEventListener("focus", setMinDateInputs);
           document.getElementById("end").addEventListener("focus", setMinDateInputs);
-  });
+        });
+
 </script>
 
 </body>
