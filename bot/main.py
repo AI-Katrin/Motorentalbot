@@ -26,6 +26,9 @@ dp = Dispatcher(storage=storage)
 
 aclient = None  # объявим глобально
 
+class RentFSM(StatesGroup):
+    waiting_for_contact = State()
+
 # Определяем состояния для процесса заявки
 class UrgentRequestFSM(StatesGroup):
     waiting_for_contact = State()
@@ -147,12 +150,12 @@ async def send_long_message(chat_id: int, text: str, reply_markup=None):
         markup = reply_markup if i == len(chunks) - 1 else None
         await bot.send_message(chat_id, chunk, reply_markup=markup)
 
-# Расширяем функцию отправки главного меню, добавляя новую кнопку
+# Функции отправки главного меню
 async def send_main_menu(chat_id: int):
     builder = InlineKeyboardBuilder()
     builder.row(types.InlineKeyboardButton(
         text="Аренда мотоциклов",
-        callback_data="rent_motorcycle"  # Теперь кнопка вызывает запрос номера
+        callback_data="rent_motorcycle"
     ))
     builder.row(types.InlineKeyboardButton(
         text="Вызвать мотоэвакуатор",
@@ -193,10 +196,10 @@ async def request_contact_before_rent(callback_query: types.CallbackQuery, state
         "Для авторизации и просмотра доступных мотоциклов отправьте ваш контакт.",
         reply_markup=contact_keyboard
     )
-    await state.set_state("waiting_for_contact")  # Устанавливаем состояние ожидания контакта
+    await state.set_state(RentFSM.waiting_for_contact)  # Устанавливаем состояние ожидания контакта
 
 ## Обработчик для кнопки "Аренда мотоциклов"
-@dp.message(F.content_type == ContentType.CONTACT, StateFilter("waiting_for_contact"))
+@dp.message(RentFSM.waiting_for_contact, F.content_type == ContentType.CONTACT)
 async def process_contact_and_open_webapp(message: types.Message, state: FSMContext):
     """Обрабатываем контакт и открываем Mini App"""
     phone_number = message.contact.phone_number
@@ -438,11 +441,14 @@ async def get_commands(message: types.Message):
 @dp.message(F.content_type == ContentType.CONTACT)
 async def process_contact(message: types.Message, state: FSMContext):
     current_state = await state.get_state()
-    if current_state == UrgentRequestFSM.waiting_for_contact.state:
-        # Здесь можно реализовать дополнительную логику, если контакт получен в нужном состоянии
-        pass
-    else:
-        await message.reply("Контакт не ожидается сейчас.")
+    if current_state in {
+        UrgentRequestFSM.waiting_for_contact.state,
+        RentFSM.waiting_for_contact.state,
+        CallbackRequestFSM.waiting_for_contact.state
+    }:
+        return
+    await message.reply("Контакт не ожидается сейчас.")
+
 
 # Обработчик неизвестных текстовых сообщений
 @dp.message(F.content_type == ContentType.TEXT)

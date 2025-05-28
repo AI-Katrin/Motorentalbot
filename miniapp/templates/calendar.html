@@ -105,6 +105,7 @@
   <input type="hidden" id="phone" name="phone" value="{{ phone }}">
 
   <div id="price-summary">
+    <p>Количество суток: <span id="days-count">—</span> суток</p>
     <p>Стоимость (без скидки): <span id="base-price">—</span> руб.</p>
     <p>Стоимость аренды (с учетом скидки): <span id="discounted-price">—</span> руб.</p>
   </div>
@@ -136,7 +137,7 @@
   function setMinDateInputs() {
     const now = new Date();
     now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-    const minDate = now.toISOString().slice(0, 16); // формат YYYY-MM-DDTHH:mm
+    const minDate = now.toISOString().slice(0, 16);
 
     const startInput = document.getElementById("start");
     const endInput = document.getElementById("end");
@@ -150,10 +151,12 @@
     const end = new Date(document.getElementById("end").value);
     const baseEl = document.getElementById("base-price");
     const discountedEl = document.getElementById("discounted-price");
+    const daysEl = document.getElementById("days-count");
 
     if (isNaN(start.getTime()) || isNaN(end.getTime()) || end <= start) {
       baseEl.textContent = "—";
       discountedEl.textContent = "—";
+      daysEl.textContent = "—";
       return;
     }
 
@@ -170,48 +173,53 @@
     const discounted = Math.round(base * (1 - discount));
     baseEl.textContent = base.toLocaleString("ru-RU");
     discountedEl.textContent = discounted.toLocaleString("ru-RU");
+    daysEl.textContent = days;
   }
 
-  function submitForm() {
-    const start = document.getElementById("start").value;
-    const end = document.getElementById("end").value;
-    const moto = document.getElementById("moto-display").textContent;
-    const user_id = document.getElementById("user_id").value;
-    const phone = document.getElementById("phone").value;
+        function submitForm() {
+          const start = document.getElementById("start").value;
+          const end = document.getElementById("end").value;
+          const moto = document.getElementById("moto-display").textContent;
+          const user_id = document.getElementById("user_id").value;
+          const phone = document.getElementById("phone").value;
 
-    if (!start || !end) {
-      alert("Пожалуйста, выберите даты аренды.");
-      return;
-    }
+          if (!start || !end) {
+            alert("Пожалуйста, выберите даты аренды.");
+            return;
+          }
 
-    const priceWithoutDiscount = document.getElementById("base-price").textContent.replace(/\D/g, '');
-    const priceWithDiscount = document.getElementById("discounted-price").textContent.replace(/\D/g, '');
+          const priceWithoutDiscount = document.getElementById("base-price").textContent.replace(/\D/g, '');
+          const priceWithDiscount = document.getElementById("discounted-price").textContent.replace(/\D/g, '');
 
-    const queryParams = new URLSearchParams({
-      moto,
-      start,
-      end,
-      user_id,
-      phone,
-      base_price: priceWithoutDiscount,
-      discounted_price: priceWithDiscount
-    }).toString();
+          const params = getQueryParams();
+          const deposit = params.deposit && !isNaN(Number(params.deposit)) ? params.deposit : "0";
+          const pricePerDay = params.price_per_day && !isNaN(Number(params.price_per_day)) ? params.price_per_day : "0";
 
-    window.location.href = `/app/services?${queryParams}`;
-  }
+          const queryParams = new URLSearchParams({
+            moto,
+            start,
+            end,
+            user_id,
+            phone,
+            base_price: priceWithoutDiscount,
+            discounted_price: priceWithDiscount,
+            deposit,
+            price_per_day: pricePerDay
+          }).toString();
 
-  document.addEventListener("DOMContentLoaded", () => {
-    setMinDateInputs();
+          window.location.href = `/app/services?${queryParams}`;
+        }
 
-    document.getElementById("start").addEventListener("change", calculatePrice);
-    document.getElementById("end").addEventListener("change", calculatePrice);
 
-    // Обновление min при каждом фокусе (для моб. браузеров, особенно Safari)
-    document.getElementById("start").addEventListener("focus", setMinDateInputs);
-    document.getElementById("end").addEventListener("focus", setMinDateInputs);
+
+        document.addEventListener("DOMContentLoaded", () => {
+          setMinDateInputs();
+          document.getElementById("start").addEventListener("change", calculatePrice);
+          document.getElementById("end").addEventListener("change", calculatePrice);
+          document.getElementById("start").addEventListener("focus", setMinDateInputs);
+          document.getElementById("end").addEventListener("focus", setMinDateInputs);
   });
 </script>
-
 
 </body>
 </html>
