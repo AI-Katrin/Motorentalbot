@@ -5,7 +5,7 @@ from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import Command, StateFilter
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove, MenuButtonCommands, InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo
 from aiogram.enums import ContentType
-from aiogram.fsm.state import StatesGroup, State
+from aiogram.fsm.state import StatesGroup, State, default_state
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.utils.keyboard import InlineKeyboardBuilder
@@ -16,7 +16,7 @@ from aiohttp_socks import ProxyConnector
 from aiohttp import ClientSession
 import httpx
 import logging
-
+from aiogram.fsm.state import
 
 logging.basicConfig(level=logging.INFO)
 
@@ -197,6 +197,8 @@ async def request_contact_before_rent(callback_query: types.CallbackQuery, state
         reply_markup=contact_keyboard
     )
     await state.set_state(RentFSM.waiting_for_contact)  # Устанавливаем состояние ожидания контакта
+    print("RentFSM.waiting_for_contact установлен")
+
 
 ## Обработчик для кнопки "Аренда мотоциклов"
 @dp.message(RentFSM.waiting_for_contact, F.content_type == ContentType.CONTACT)
@@ -438,9 +440,23 @@ async def get_commands(message: types.Message):
     cmds = await bot.get_my_commands()
     await message.answer(str(cmds))
 
-@dp.message(StateFilter(None), F.content_type == ContentType.CONTACT)
-async def process_contact_unexpected(message: types.Message):
-    await message.reply("Контакт не ожидается сейчас.")
+
+@dp.message(StateFilter(default_state), F.content_type == ContentType.CONTACT)
+async def contact_outside_state(message: types.Message, state: FSMContext):
+    data = await state.get_data()
+
+    await asyncio.sleep(0.3)
+    current_state = await state.get_state()
+
+    if current_state in {
+        RentFSM.waiting_for_contact.state,
+        UrgentRequestFSM.waiting_for_contact.state,
+        CallbackRequestFSM.waiting_for_contact.state
+    }:
+        return
+
+    print("Ошибка. Контакт не ожидается сейчас.")
+    await message.reply("Ошибка. Контакт не ожидается сейчас.")
 
 # Обработчик неизвестных текстовых сообщений
 @dp.message(F.content_type == ContentType.TEXT)

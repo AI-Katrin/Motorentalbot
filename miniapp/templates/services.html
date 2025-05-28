@@ -151,21 +151,23 @@
   }
 
   document.addEventListener("DOMContentLoaded", () => {
-    const params = getQueryParams();
-    document.getElementById("moto").textContent = params.moto?.replace(/\+/g, ' ') || "";
-    if (params.start && params.end) {
-      const start = new Date(params.start);
-      const end = new Date(params.end);
-      const opts = { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' };
-      document.getElementById("period").textContent = `${start.toLocaleString("ru-RU", opts)} - ${end.toLocaleString("ru-RU", opts)}`;
-    }
-    updateTotals();
-    document.querySelectorAll('input[name="services"]').forEach(cb => cb.addEventListener('change', updateTotals));
-  });
+  const params = getQueryParams();
 
+  // Отображаем данные
+  document.getElementById("moto").textContent = params.moto?.replace(/\+/g, ' ') || "";
+  if (params.start && params.end) {
+    const start = new Date(params.start);
+    const end = new Date(params.end);
+    const opts = { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' };
+    document.getElementById("period").textContent = `${start.toLocaleString("ru-RU", opts)} - ${end.toLocaleString("ru-RU", opts)}`;
+  }
+
+  updateTotals();
+  document.querySelectorAll('input[name="services"]').forEach(cb => cb.addEventListener('change', updateTotals));
+
+  // 💡 Перенос обработчика сюда:
   document.getElementById("rental-form").addEventListener("submit", function(event) {
     event.preventDefault();
-    const params = getQueryParams();
     const services = Array.from(document.querySelectorAll('input[name="services"]:checked')).map(cb => cb.value);
     const start = new Date(params.start);
     const end = new Date(params.end);
@@ -191,6 +193,8 @@
 
     window.location.href = url.toString();
   });
+});
+
 </script>
 </body>
 </html>
