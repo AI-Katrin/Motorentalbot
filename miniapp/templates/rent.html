@@ -357,6 +357,8 @@
       const phone = params.get("phone");
 
       const url = `/app/calendar?user_id=${encodeURIComponent(user_id)}&phone=${encodeURIComponent(phone)}&moto=${encodeURIComponent(motoName)}&deposit=${encodeURIComponent(motoDeposit)}&price_per_day=${encodeURIComponent(motoPrice)}`;
+
+      window.location.href = url;
     }
 
 
