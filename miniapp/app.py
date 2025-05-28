@@ -181,5 +181,39 @@ async def services_page(request: Request, moto: str = "", start: str = "", end: 
         "phone": phone
     })
 
+@router.get("/summary", response_class=HTMLResponse)
+async def summary_page(request: Request,
+                       moto: str = "",
+                       start: str = "",
+                       end: str = "",
+                       user_id: str = "",
+                       phone: str = "",
+                       services: str = "",
+                       equipment_details: str = "",
+                       delivery_address: str = "",
+                       comments: str = "",
+                       deposit: str = "",
+                       base_price: str = "",
+                       price_per_day: str = "",
+                       discounted_price: str = "",
+                       extra_services_price: str = ""):
+    return templates.TemplateResponse("summary.html", {
+        "request": request,
+        "moto": moto,
+        "start": start,
+        "end": end,
+        "user_id": user_id,
+        "phone": phone,
+        "services": services,
+        "equipment_details": equipment_details,
+        "delivery_address": delivery_address,
+        "comments": comments,
+        "deposit": deposit,
+        "base_price": base_price,
+        "price_per_day": price_per_day,
+        "discounted_price": discounted_price,
+        "extra_services_price": extra_services_price
+    })
+
 # Подключаем маршруты
 app.include_router(router, prefix="/app")
