@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Оформление аренды - Подтверждение</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f8f8f8;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    header, footer {
+      width: 100%;
+      max-width: 420px;
+      background-color: #fff;
+      padding: 10px;
+      text-align: center;
+      font-size: 12px;
+    }
+
+    .content {
+      width: 100%;
+      max-width: 420px;
+      padding: 20px;
+      background-color: #fff;
+      text-align: left;
+    }
+
+    h1 {
+      font-size: 20px;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+
+    label {
+      display: block;
+      margin: 10px 0 5px;
+      font-size: 14px;
+    }
+
+    input[type="text"], input[type="datetime-local"], textarea {
+      width: 100%;
+      padding: 8px;
+      margin-bottom: 15px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      box-sizing: border-box;
+    }
+
+    textarea {
+      resize: vertical;
+      height: 80px;
+    }
+
+    .checkbox-group label {
+      font-weight: normal;
+      display: flex;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .checkbox-group input {
+      margin-right: 8px;
+    }
+
+    .buttons {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 20px;
+    }
+
+    .button {
+      flex: 1;
+      padding: 12px;
+      margin: 0 5px;
+      font-size: 16px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    .back {
+      background-color: #d3d3d3;
+    }
+
+    .continue {
+      background-color: #e63946;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h2>Аренда мотоциклов / Мотоэвакуация</h2>
+  <p><strong>+7 (499) 460-47-08</strong><br>sales@lomovtravel.com</p>
+</header>
+
+<div class="content">
+  <h1>Оформление аренды</h1>
+
+  <p><strong>Мотоцикл:</strong> <span id="moto"></span></p>
+  <p><strong>Период аренды:</strong> <span id="period"></span></p>
+
+  <input type="hidden" id="deposit" name="deposit">
+
+
+  <form id="rental-form">
+    <label>Выберите дополнительные услуги:</label>
+    <div class="checkbox-group">
+      <label><input type="checkbox" name="services" value="Боковые кофры" checked> Боковые кофры</label>
+      <label><input type="checkbox" name="services" value="Низкое сиденье (1000 руб./сутки)"> Низкое сиденье</label>
+      <label><input type="checkbox" name="services" value="Экипировка (шлем, куртка и т.д.)"> Экипировка (шлем, куртка и т.д.)</label>
+      <label><input type="checkbox" name="services" value="Доставка (от 3500 р)" checked> Доставка (от 3500 р)</label>
+    </div>
+
+    <label for="equipment-details">Необходимая экипировка и размеры:</label>
+    <textarea id="equipment-details" name="equipment-details" placeholder="Укажите ваши пожелания..."></textarea>
+
+    <label for="delivery-address">Адрес доставки:</label>
+    <input type="text" id="delivery-address" name="delivery-address" placeholder="Введите адрес доставки">
+
+    <label for="additional-comments">Пожелания к аренде:</label>
+    <textarea id="additional-comments" name="additional-comments" placeholder="Укажите ваши пожелания, если они есть"></textarea>
+
+    <div class="buttons">
+      <button type="button" class="button back" onclick="history.back()">Назад</button>
+      <button type="submit" class="button continue">Продолжить</button>
+    </div>
+  </form>
+</div>
+
+<footer>
+  <p>
+    Телефон: +7 (499) 460-47-08 | Email: sales@lomovtravel.com | Адрес: ул. Автозаводская, д.8
+  </p>
+</footer>
+
+<script>
+  function getQueryParams() {
+    const params = {};
+    window.location.search.substring(1).split("&").forEach(pair => {
+      const [key, value] = pair.split("=");
+      if (key) {
+        params[decodeURIComponent(key)] = decodeURIComponent(value || "");
+      }
+    });
+    return params;
+  }
+
+  document.addEventListener("DOMContentLoaded", () => {
+    const params = getQueryParams();
+    if (params.moto) document.getElementById("moto").textContent = params.moto;
+    if (params.start && params.end) {
+      const startDate = new Date(params.start);
+      const endDate = new Date(params.end);
+      const options = {day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit'};
+      const periodStr = `${startDate.toLocaleString("ru-RU", options)} - ${endDate.toLocaleString("ru-RU", options)}`;
+      document.getElementById("period").textContent = periodStr;
+    }
+     if (params.deposit) {
+      const el = document.getElementById("deposit");
+      if (el) el.value = params.deposit;
+    }
+
+  });
+
+  document.getElementById("rental-form").addEventListener("submit", function(event) {
+    event.preventDefault();
+
+    const params = getQueryParams();
+
+    const selectedServices = Array.from(document.querySelectorAll('input[name="services"]:checked'))
+      .map(cb => cb.value);
+
+    const data = {
+      user_id: params.user_id || "",
+      phone: params.phone || "",
+      motorcycle: params.moto || "",
+      start: params.start || "",
+      end: params.end || "",
+      services: selectedServices,
+      equipment_details: document.getElementById("equipment-details").value,
+      delivery_address: document.getElementById("delivery-address").value,
+      additional_comments: document.getElementById("additional-comments").value
+    };
+
+    const url = new URL("summary.html", window.location.origin);
+    url.searchParams.set("moto", data.motorcycle);
+    url.searchParams.set("start", data.start);
+    url.searchParams.set("end", data.end);
+    url.searchParams.set("user_id", data.user_id);
+    url.searchParams.set("phone", data.phone);
+    url.searchParams.set("services", data.services.join(","));
+    url.searchParams.set("equipment_details", data.equipment_details);
+    url.searchParams.set("delivery_address", data.delivery_address);
+    url.searchParams.set("deposit", data.deposit || params.deposit || "");
+    url.searchParams.set("comments", data.additional_comments)
+    ;
+
+    window.location.href = url;
+  });
+</script>
+
+
+</body>
+</html>

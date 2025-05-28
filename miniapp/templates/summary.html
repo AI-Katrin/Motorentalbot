@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Оформление аренды</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f8f8f8;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    header, footer {
+      width: 100%;
+      max-width: 420px;
+      background-color: #fff;
+      padding: 10px;
+      text-align: center;
+      font-size: 12px;
+    }
+
+    .content {
+      width: 100%;
+      max-width: 420px;
+      padding: 20px;
+      background-color: #fff;
+      text-align: left;
+    }
+
+    h1 {
+      font-size: 20px;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+
+    .summary p {
+      margin: 8px 0;
+    }
+
+    .bold {
+      font-weight: bold;
+    }
+
+    .buttons {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 20px;
+    }
+
+    .button {
+      flex: 1;
+      padding: 12px;
+      margin: 0 5px;
+      font-size: 16px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    .back {
+      background-color: #d3d3d3;
+    }
+
+    .submit {
+      background-color: #e63946;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h2>Аренда мотоциклов / Мотоэвакуация</h2>
+  <p><strong>+7 (499) 460-47-08</strong><br>sales@lomovtravel.com</p>
+</header>
+
+<div class="content">
+  <h1>Оформление аренды</h1>
+  <div class="summary">
+    <p><span class="bold">Мотоцикл:</span> <span id="moto"></span></p>
+    <p><span class="bold">Период аренды:</span> <span id="period"></span></p>
+    <p><span class="bold">Дополнительные услуги:</span> <span id="services"></span></p>
+    <p><span class="bold">Адрес доставки:</span> <span id="address"></span></p>
+    <p><span class="bold">Стоимость аренды:</span> <span id="rental"></span></p>
+    <p><span class="bold">Залог:</span> <span id="deposit-display"></span></p>
+    <p><span class="bold">Итого (без учета доставки):</span> <span id="total"></span> руб.*</p>
+    <small>*Стоимость доставки рассчитывается менеджером по согласованию с клиентом и не включена в итоговую стоимость.</small>
+  </div>
+
+  <div class="buttons">
+    <button class="button back" onclick="history.back()">Назад</button>
+    <button class="button submit" onclick="submitApplication()">Оформить аренду</button>
+  </div>
+</div>
+
+<footer>
+  <p>
+    Телефон: +7 (499) 460-47-08 | Email: sales@lomovtravel.com<br>
+    Адрес: г. Москва, ул. Автозаводская, 18
+  </p>
+</footer>
+
+<script>
+  const prices = {
+    "BMW R1250GS": 15000,
+    "BMW R 1250 RT": 18000,
+    "BMW R 18": 18000
+  };
+
+  function getParams() {
+    const params = new URLSearchParams(window.location.search);
+    const result = {};
+    for (const [key, value] of params.entries()) {
+      result[key] = decodeURIComponent(value);
+    }
+    return result;
+  }
+
+  function formatDate(dateStr) {
+    const date = new Date(dateStr);
+    return date.toLocaleString("ru-RU", { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' });
+  }
+
+  function render() {
+    const data = getParams();
+
+    document.getElementById("moto").textContent = data.moto || "-";
+    document.getElementById("period").textContent = `${formatDate(data.start)} - ${formatDate(data.end)}`;
+    document.getElementById("services").textContent = (data.services || "").replaceAll(",", ", ");
+    document.getElementById("address").textContent = data.delivery_address || "—";
+    document.getElementById("deposit-display").textContent = `${deposit.toLocaleString("ru-RU")} руб.`;
+
+    const pricePerDay = prices[data.moto] || 0;
+    const days = Math.ceil((new Date(data.end) - new Date(data.start)) / (1000 * 60 * 60 * 24));
+    const rental = pricePerDay * days;
+    const deposit = 50000;
+    const total = rental + deposit;
+
+    document.getElementById("rental").textContent = `${rental.toLocaleString("ru-RU")} руб.`;
+    document.getElementById("total").textContent = total.toLocaleString("ru-RU");
+
+    return { ...data, rental, deposit, total };
+  }
+
+  async function submitApplication() {
+    const data = render();
+    try {
+      const response = await fetch("https://motorentalbot.com/app/amo-lead", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data)
+      });
+
+      if (response.ok) {
+        alert("Заявка успешно отправлена! Мы скоро свяжемся с вами.");
+        // window.location.href = "/thankyou";
+      } else {
+        alert("Ошибка при отправке заявки. Попробуйте позже.");
+      }
+    } catch (error) {
+      console.error(error);
+      alert("Ошибка соединения с сервером.");
+    }
+  }
+
+  render();
+</script>
+
+</body>
+</html>
