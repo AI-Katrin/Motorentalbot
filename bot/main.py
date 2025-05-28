@@ -438,17 +438,9 @@ async def get_commands(message: types.Message):
     cmds = await bot.get_my_commands()
     await message.answer(str(cmds))
 
-@dp.message(F.content_type == ContentType.CONTACT)
-async def process_contact(message: types.Message, state: FSMContext):
-    current_state = await state.get_state()
-    if current_state in {
-        UrgentRequestFSM.waiting_for_contact.state,
-        RentFSM.waiting_for_contact.state,
-        CallbackRequestFSM.waiting_for_contact.state
-    }:
-        return
+@dp.message(StateFilter(None), F.content_type == ContentType.CONTACT)
+async def process_contact_unexpected(message: types.Message):
     await message.reply("Контакт не ожидается сейчас.")
-
 
 # Обработчик неизвестных текстовых сообщений
 @dp.message(F.content_type == ContentType.TEXT)
@@ -461,7 +453,7 @@ async def fallback_handler(message: types.Message, state: FSMContext):
 async def main():
     global aclient
 
-    logging.info(f"🟢 Используем прокси: {OPENAI_PROXY}")
+    logging.info(f"Используем прокси: {OPENAI_PROXY}")
 
     http_client = httpx.AsyncClient(proxies=OPENAI_PROXY)
     aclient = AsyncOpenAI(api_key=OPENAI_API_KEY, http_client=http_client)
