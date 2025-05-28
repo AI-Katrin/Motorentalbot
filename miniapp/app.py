@@ -1,4 +1,5 @@
 from fastapi import FastAPI, Request
+from aiogram import Bot
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -7,12 +8,12 @@ from fastapi import APIRouter
 from pydantic import BaseModel
 from datetime import datetime
 import math
+from config import BOT_TOKEN, EMPLOYEE_CHAT_ID
 
 
 app = FastAPI()
 router = APIRouter()
 bot = Bot(token=BOT_TOKEN)
-
 
 # Подключаем папку с шаблонами и статикой
 templates = Jinja2Templates(directory="miniapp/templates")
