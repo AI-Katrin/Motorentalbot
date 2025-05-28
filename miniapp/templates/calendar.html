@@ -133,6 +133,18 @@
     return params;
   }
 
+  function setMinDateInputs() {
+    const now = new Date();
+    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+    const minDate = now.toISOString().slice(0, 16); // формат YYYY-MM-DDTHH:mm
+
+    const startInput = document.getElementById("start");
+    const endInput = document.getElementById("end");
+
+    startInput.min = minDate;
+    endInput.min = minDate;
+  }
+
   function calculatePrice() {
     const start = new Date(document.getElementById("start").value);
     const end = new Date(document.getElementById("end").value);
@@ -188,18 +200,18 @@
     window.location.href = `/app/services?${queryParams}`;
   }
 
-  document.getElementById("start").addEventListener("change", calculatePrice);
-  document.getElementById("end").addEventListener("change", calculatePrice);
-
   document.addEventListener("DOMContentLoaded", () => {
-    const now = new Date();
-    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-    const minDate = now.toISOString().slice(0, 16);
+    setMinDateInputs();
 
-    document.getElementById("start").setAttribute("min", minDate);
-    document.getElementById("end").setAttribute("min", minDate);
+    document.getElementById("start").addEventListener("change", calculatePrice);
+    document.getElementById("end").addEventListener("change", calculatePrice);
+
+    // Обновление min при каждом фокусе (для моб. браузеров, особенно Safari)
+    document.getElementById("start").addEventListener("focus", setMinDateInputs);
+    document.getElementById("end").addEventListener("focus", setMinDateInputs);
   });
 </script>
+
 
 </body>
 </html>
