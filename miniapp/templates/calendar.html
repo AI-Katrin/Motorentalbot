@@ -14,6 +14,7 @@
       flex-direction: column;
       align-items: center;
     }
+
     header, footer {
       width: 100%;
       max-width: 420px;
@@ -22,6 +23,7 @@
       text-align: center;
       font-size: 12px;
     }
+
     .content {
       width: 100%;
       max-width: 420px;
@@ -29,32 +31,39 @@
       background-color: #fff;
       text-align: center;
     }
+
     h1 {
       font-size: 20px;
       margin-bottom: 20px;
     }
+
     label {
       display: block;
       margin: 10px 0 5px;
       font-size: 14px;
     }
+
     input[type="datetime-local"] {
       width: 100%;
       padding: 8px;
       margin-bottom: 15px;
       border: 1px solid #ccc;
       border-radius: 5px;
+      appearance: auto;
     }
+
     #price-summary {
       margin-top: 15px;
       font-size: 14px;
       text-align: left;
     }
+
     .buttons {
       display: flex;
       justify-content: space-between;
       margin-top: 20px;
     }
+
     .button {
       flex: 1;
       padding: 12px;
@@ -64,9 +73,11 @@
       border-radius: 8px;
       cursor: pointer;
     }
+
     .back {
       background-color: #d3d3d3;
     }
+
     .continue {
       background-color: #e63946;
       color: white;
@@ -85,10 +96,10 @@
   <p><strong>Мотоцикл:</strong> <span id="moto-display">{{ moto }}</span></p>
 
   <label for="start">Начало аренды:</label>
-  <input type="datetime-local" id="start" name="start" readonly step="1800">
+  <input type="datetime-local" id="start" name="start" step="1800">
 
   <label for="end">Окончание аренды:</label>
-  <input type="datetime-local" id="end" name="end" readonly step="1800">
+  <input type="datetime-local" id="end" name="end" step="1800">
 
   <input type="hidden" id="user_id" name="user_id" value="{{ user_id }}">
   <input type="hidden" id="phone" name="phone" value="{{ phone }}">
@@ -111,6 +122,17 @@
 </footer>
 
 <script>
+  function getQueryParams() {
+    const params = {};
+    window.location.search.substring(1).split("&").forEach(pair => {
+      const [key, value] = pair.split("=");
+      if (key) {
+        params[decodeURIComponent(key)] = decodeURIComponent(value || "");
+      }
+    });
+    return params;
+  }
+
   function calculatePrice() {
     const start = new Date(document.getElementById("start").value);
     const end = new Date(document.getElementById("end").value);
@@ -150,32 +172,33 @@
       return;
     }
 
-    const data = {
+    const priceWithoutDiscount = document.getElementById("base-price").textContent.replace(/\D/g, '');
+    const priceWithDiscount = document.getElementById("discounted-price").textContent.replace(/\D/g, '');
+
+    const queryParams = new URLSearchParams({
+      moto,
+      start,
+      end,
       user_id,
       phone,
-      motorcycle: moto,
-      start,
-      end
-    };
+      base_price: priceWithoutDiscount,
+      discounted_price: priceWithDiscount
+    }).toString();
 
-    fetch("/app/confirm", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data),
-    })
-    .then((r) => r.json())
-    .then((res) => {
-      const queryParams = new URLSearchParams({ moto, start, end, user_id, phone }).toString();
-      window.location.href = `/app/services?${queryParams}`;
-    })
-    .catch((err) => {
-      console.error(err);
-      alert("Ошибка при оформлении заказа. Попробуйте снова.");
-    });
+    window.location.href = `/app/services?${queryParams}`;
   }
 
   document.getElementById("start").addEventListener("change", calculatePrice);
   document.getElementById("end").addEventListener("change", calculatePrice);
+
+  document.addEventListener("DOMContentLoaded", () => {
+    const now = new Date();
+    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+    const minDate = now.toISOString().slice(0, 16);
+
+    document.getElementById("start").setAttribute("min", minDate);
+    document.getElementById("end").setAttribute("min", minDate);
+  });
 </script>
 
 </body>
