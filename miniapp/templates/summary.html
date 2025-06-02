@@ -95,7 +95,6 @@
     <small>*Стоимость доставки рассчитывается менеджером по согласованию с клиентом и не включена в итоговую стоимость.</small>
   </div>
 
-
   <div class="buttons">
     <button class="button back" onclick="history.back()">Назад</button>
     <button class="button submit" onclick="submitApplication()">Оформить аренду</button>
@@ -135,10 +134,10 @@
 
     data.moto = (data.moto || "").replaceAll("+", " ");
 
-    const basePrice = Number(data.base_price || 0); // цена без скидки
-    const discountedPrice = Number(data.discounted_price || 0); // цена со скидкой
-    const deposit = Number(data.deposit || 0); // залог
-    const extraServicesPrice = Number(data.extra_services_price || 0); // доп. услуги
+    const basePrice = Number(data.base_price || 0);
+    const discountedPrice = Number(data.discounted_price || 0);
+    const deposit = Number(data.deposit || 0);
+    const extraServicesPrice = Number(data.extra_services_price || 0);
 
     const total = discountedPrice + extraServicesPrice;
 
@@ -166,7 +165,7 @@
   async function submitApplication() {
     const data = render();
     try {
-      const response = await fetch("https://motorentalbot.ru/app/amo-lead", {
+      const response = await fetch("https://motorentalbot.ru/app/confirm", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data)
@@ -174,7 +173,7 @@
 
       if (response.ok) {
         alert("Заявка успешно отправлена! Мы скоро свяжемся с вами.");
-        // window.location.href = "/thankyou";
+        window.location.href = "/admin/requests";
       } else {
         alert("Ошибка при отправке заявки. Попробуйте позже.");
       }
@@ -186,8 +185,6 @@
 
   render();
 </script>
-
-
 
 </body>
 </html>

@@ -6,7 +6,7 @@ import shutil
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from fastapi import FastAPI, Request, UploadFile, File, Form, Depends, APIRouter, HTTPException
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from aiogram import Bot
@@ -29,13 +29,6 @@ bot = Bot(token=BOT_TOKEN)
 templates = Jinja2Templates(directory="miniapp/templates")
 admin_templates = Jinja2Templates(directory="web/templates")
 app.mount("/static", StaticFiles(directory="miniapp/static"), name="static")
-
-class RentalRequest(BaseModel):
-    user_id: str
-    phone: str
-    motorcycle: str
-    start: str
-    end: str
 
 def calculate_discount(days: int) -> float:
     if days >= 30:
@@ -66,39 +59,56 @@ async def calendar_page(request: Request, moto: str = "", user_id: str = "", pho
     })
 
 @router.post("/confirm")
-async def confirm_rental(rental: RentalRequest, db: Session = Depends(get_db)):
-    moto = db.query(Motorcycle).filter_by(model=rental.motorcycle).first()
+async def confirm_rental(rental: BookingCreate, db: Session = Depends(get_db)):
+    moto = db.query(Motorcycle).filter_by(model=rental.moto).first()
     if not moto:
-        return JSONResponse(status_code=400, content={"error": "Unknown motorcycle"})
+        raise HTTPException(status_code=400, detail="Unknown motorcycle")
 
     try:
         start_dt = datetime.fromisoformat(rental.start)
         end_dt = datetime.fromisoformat(rental.end)
     except ValueError:
-        return JSONResponse(status_code=400, content={"error": "Invalid date format"})
+        raise HTTPException(status_code=400, detail="Invalid date format")
 
     if end_dt <= start_dt:
-        return JSONResponse(status_code=400, content={"error": "End date must be after start date"})
+        raise HTTPException(status_code=400, detail="End date must be after start date")
 
-    days = math.ceil((end_dt - start_dt).total_seconds() / (24 * 3600))
-    discount_rate = calculate_discount(days)
-    base_price = days * moto.price_per_day
-    discounted_price = base_price * (1 - discount_rate)
+    new_booking = Booking(
+        moto=rental.moto,
+        user_id=rental.user_id,
+        phone=rental.phone,
+        start_date=rental.start,
+        end_date=rental.end,
+        services=rental.services,
+        equipment_details=rental.equipment_details,
+        delivery_address=rental.delivery_address,
+        comments=rental.comments,
+        base_price=rental.base_price,
+        discounted_price=rental.discounted_price,
+        extra_services_price=rental.extra_services_price,
+        deposit=rental.deposit,
+        total=rental.total,
+        status="pending",
+        source="telegram_miniapp"
+    )
+    db.add(new_booking)
+    db.commit()
+    db.refresh(new_booking)
 
     message = (
         f"Новая заявка на аренду мотоцикла:\n\n"
-        f"Мотоцикл: {rental.motorcycle}\n"
-        f"Начало: {start_dt.strftime('%d.%m.%Y')}\n"
-        f"Окончание: {end_dt.strftime('%d.%m.%Y')}\n"
+        f"Мотоцикл: {rental.moto}\n"
+        f"Период: {start_dt.strftime('%d.%m.%Y')} – {end_dt.strftime('%d.%m.%Y')}\n"
         f"Телефон: {rental.phone}\n"
         f"Telegram ID: {rental.user_id}\n"
-        f"Без скидки: {int(base_price):,} руб.\n"
-        f"Со скидкой: {int(discounted_price):,} руб.\n"
-        f"Залог: {moto.deposit:,} руб."
+        f"Цена без скидки: {rental.base_price:,} руб.\n"
+        f"Со скидкой: {rental.discounted_price:,} руб.\n"
+        f"Залог: {rental.deposit:,} руб."
     )
 
     await bot.send_message(EMPLOYEE_CHAT_ID, message)
-    return JSONResponse(status_code=200, content={"message": "Заказ успешно оформлен"})
+
+    return {"message": "Заявка сохранена", "id": new_booking.id}
 
 @router.get("/services", response_class=HTMLResponse)
 async def services_page(request: Request, moto: str = "", start: str = "", end: str = "", user_id: str = "", phone: str = ""):
@@ -139,7 +149,6 @@ async def summary_page(request: Request,
 async def show_admin_calendar(request: Request, db: Session = Depends(get_db)):
     motos = db.query(Motorcycle).all()
     bookings = db.query(Booking).all()
-
     return admin_templates.TemplateResponse("web_calendar.html", {
         "request": request,
         "motos": motos,
@@ -151,8 +160,27 @@ async def admin_add_moto_page(request: Request):
     return admin_templates.TemplateResponse("add_moto.html", {"request": request})
 
 @app.get("/admin/requests", response_class=HTMLResponse)
-async def admin_requests(request: Request):
-    return admin_templates.TemplateResponse("requests.html", {"request": request})
+async def admin_requests(request: Request, db: Session = Depends(get_db)):
+    bookings = db.query(Booking).filter(Booking.status == "pending").all()
+    return admin_templates.TemplateResponse("requests.html", {"request": request, "bookings": bookings})
+
+@app.post("/admin/requests/confirm/{booking_id}")
+async def confirm_booking(booking_id: int, db: Session = Depends(get_db)):
+    booking = db.query(Booking).filter_by(id=booking_id).first()
+    if not booking:
+        raise HTTPException(status_code=404, detail="Заявка не найдена")
+    booking.status = "confirmed"
+    db.commit()
+    return RedirectResponse("/admin/requests", status_code=303)
+
+@app.post("/admin/requests/reject/{booking_id}")
+async def reject_booking(booking_id: int, db: Session = Depends(get_db)):
+    booking = db.query(Booking).filter_by(id=booking_id).first()
+    if not booking:
+        raise HTTPException(status_code=404, detail="Заявка не найдена")
+    booking.status = "rejected"
+    db.commit()
+    return RedirectResponse("/admin/requests", status_code=303)
 
 @app.post("/admin/motorcycles")
 async def add_motorcycle(
@@ -178,7 +206,6 @@ async def add_motorcycle(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Ошибка при сохранении изображения: {e}")
 
-    # ✅ формируем полный URL
     image_url = f"{request.base_url}static/images/{filename}"
 
     moto = Motorcycle(
@@ -204,7 +231,6 @@ async def add_motorcycle(
         "image_url": moto.image_url
     })
 
-
 @app.delete("/api/motorcycles/{moto_id}")
 async def delete_motorcycle(moto_id: int, db: Session = Depends(get_db)):
     moto = db.query(Motorcycle).filter(Motorcycle.id == moto_id).first()
@@ -214,32 +240,6 @@ async def delete_motorcycle(moto_id: int, db: Session = Depends(get_db)):
     db.commit()
     return {"message": "Мотоцикл удалён"}
 
-@router.post("/amo-lead")
-async def create_amo_lead(data: BookingCreate, db: Session = Depends(get_db)):
-    booking = Booking(
-        moto=data.moto,
-        user_id=data.user_id,
-        phone=data.phone,
-        start_date=data.start,
-        end_date=data.end,
-        services=data.services,
-        equipment_details=data.equipment_details,
-        delivery_address=data.delivery_address,
-        comments=data.comments,
-        base_price=data.base_price,
-        discounted_price=data.discounted_price,
-        extra_services_price=data.extra_services_price,
-        deposit=data.deposit,
-        total=data.total,
-        status="pending",
-        source="telegram_miniapp"
-    )
-    db.add(booking)
-    db.commit()
-    db.refresh(booking)
-    return {"message": "Заявка сохранена", "id": booking.id}
-
-# Подключаем только нужные роутеры
 app.include_router(bookings.router)
 app.include_router(motos.router)
 app.include_router(router, prefix="/app")
