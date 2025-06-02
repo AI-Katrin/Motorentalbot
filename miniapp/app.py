@@ -54,7 +54,7 @@ async def rent_page(request: Request, db: Session = Depends(get_db)):
 
 @router.get("/calendar", response_class=HTMLResponse)
 async def calendar_page(request: Request, moto: str = "", user_id: str = "", phone: str = "", db: Session = Depends(get_db)):
-    moto_obj = db.query(Motorcycle).filter_by(name=moto).first()
+    moto_obj = db.query(Motorcycle).filter_by(model=moto).first()
     price = moto_obj.price_per_day if moto_obj else 0
     return templates.TemplateResponse("calendar.html", {
         "request": request,
@@ -66,7 +66,7 @@ async def calendar_page(request: Request, moto: str = "", user_id: str = "", pho
 
 @router.post("/confirm")
 async def confirm_rental(rental: RentalRequest, db: Session = Depends(get_db)):
-    moto = db.query(Motorcycle).filter_by(name=rental.motorcycle).first()
+    moto = db.query(Motorcycle).filter_by(model=rental.motorcycle).first()
     if not moto:
         return JSONResponse(status_code=400, content={"error": "Unknown motorcycle"})
 
@@ -156,11 +156,9 @@ async def add_motorcycle(
     image: UploadFile = File(...),
     db: Session = Depends(get_db)
 ):
-    # Создаём директорию для изображений, если её нет
     image_dir = "miniapp/static/images"
     os.makedirs(image_dir, exist_ok=True)
 
-    # Сохраняем файл с уникальным именем
     ext = image.filename.split('.')[-1]
     filename = f"{uuid4().hex}.{ext}"
     file_path = os.path.join(image_dir, filename)
@@ -171,11 +169,9 @@ async def add_motorcycle(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Ошибка при сохранении изображения: {e}")
 
-    # Сохраняем мотоцикл в БД
     moto = Motorcycle(
         brand=brand,
         model=model,
-        name=f"{brand} {model}",
         description=description,
         price_per_day=price_per_day,
         deposit=deposit,
@@ -184,7 +180,17 @@ async def add_motorcycle(
     db.add(moto)
     db.commit()
     db.refresh(moto)
-    return {"message": "Мотоцикл добавлен", "id": moto.id}
+
+    return JSONResponse(content={
+        "id": moto.id,
+        "brand": moto.brand,
+        "model": moto.model,
+        "name": f"{moto.brand} {moto.model}",
+        "description": moto.description,
+        "price_per_day": moto.price_per_day,
+        "deposit": moto.deposit,
+        "image_url": moto.image_url
+    })
 
 @app.delete("/api/motorcycles/{moto_id}")
 async def delete_motorcycle(moto_id: int, db: Session = Depends(get_db)):
