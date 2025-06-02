@@ -40,3 +40,4 @@ class Motorcycle(Base):
     price_per_day = Column(Integer, nullable=False)
     deposit = Column(Integer, nullable=False)
     image_path = Column(String, nullable=True)
+
