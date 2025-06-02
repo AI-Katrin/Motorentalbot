@@ -149,11 +149,11 @@ async def show_admin_calendar(request: Request):
 
 @app.get("/admin/add-moto", response_class=HTMLResponse)
 async def admin_add_moto_page(request: Request):
-    return admin_templates.TemplateResponse("add-moto.html", {"request": request})
+    return admin_templates.TemplateResponse("add_moto.html", {"request": request})
 
 @app.get("/admin/requests", response_class=HTMLResponse)
 async def admin_requests(request: Request):
-    return admin_templates.TemplateResponse("admin_requests.html", {"request": request})
+    return admin_templates.TemplateResponse("requests.html", {"request": request})
 
 @app.post("/admin/motorcycles")
 async def add_motorcycle(
