@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, UploadFile, File, Form, HTTPException
 from sqlalchemy.orm import Session
 from database import get_db
-from models import Moto
+from models import Motorcycle
 from schemas import MotoOut
 import shutil
 import os
@@ -37,7 +37,7 @@ def create_moto(
         raise HTTPException(status_code=500, detail=f"Ошибка при сохранении изображения: {e}")
 
     # Сохраняем запись в БД
-    moto = Moto(
+    moto = Motorcycle(
         brand=brand,
         model=model,
         description=description,
@@ -53,4 +53,4 @@ def create_moto(
 
 @router.get("/", response_model=list[MotoOut])
 def list_motos(db: Session = Depends(get_db)):
-    return db.query(Moto).all()
+    return db.query(Motorcycle).all()
