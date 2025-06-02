@@ -238,6 +238,21 @@
     document.addEventListener("DOMContentLoaded", function () {
       const tg = window.Telegram?.WebApp;
       if (tg) tg.expand();
+
+      new Swiper('.swiper', {
+        loop: true,
+        pagination: {
+          el: '.swiper-pagination',
+          clickable: true,
+        },
+        navigation: {
+          nextEl: '.swiper-button-next',
+          prevEl: '.swiper-button-prev',
+        },
+        simulateTouch: true,
+        touchRatio: 1,
+        grabCursor: true,
+      });
     });
   </script>
 </body>
