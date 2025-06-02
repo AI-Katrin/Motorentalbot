@@ -22,7 +22,7 @@ nohup "$VENV_BIN/python3" -m "$BOT_MODULE" > "$BOT_LOG" 2>&1 &
 
 # Запуск FastAPI backend с указанием PYTHONPATH
 echo "Запуск FastAPI backend..."
-nohup env PYTHONPATH=. "$VENV_BIN/python3" -m uvicorn "$API_MODULE" --host 0.0.0.0 --port 8000 > "$API_LOG" 2>&1 &
+nohup env PYTHONPATH="$PROJECT_DIR" "$VENV_BIN/python3" -m uvicorn "$API_MODULE" --host 0.0.0.0 --port 8000 > "$API_LOG" 2>&1 &
 
 echo "Скрипт выполнен. Логи:"
 echo "Бот: $BOT_LOG"

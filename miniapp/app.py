@@ -1,6 +1,6 @@
 import sys
 import os
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from fastapi import FastAPI, Request, UploadFile, File, Form, Depends, APIRouter, HTTPException
 from fastapi.responses import HTMLResponse, JSONResponse
@@ -12,8 +12,8 @@ from datetime import datetime
 from sqlalchemy.orm import Session
 import math
 import shutil
-from config import BOT_TOKEN, EMPLOYEE_CHAT_ID
-from schemas import BookingCreate
+from Motorentalbot.config import BOT_TOKEN, EMPLOYEE_CHAT_ID
+from Motorentalbot.schemas import BookingCreate
 from models import Booking, Motorcycle
 from database import get_db
 from routers import bookings, motos
