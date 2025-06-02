@@ -6,14 +6,15 @@
   <style>
     body { font-family: Arial, sans-serif; padding: 20px; background-color: #f2f2f2; }
     h1 { text-align: center; }
-    table { width: 100%; border-collapse: collapse; background: #fff; }
-    th, td { padding: 10px; border: 1px solid #ddd; text-align: left; }
+    table { width: 100%; border-collapse: collapse; background: #fff; font-size: 14px; }
+    th, td { padding: 8px; border: 1px solid #ddd; text-align: left; vertical-align: top; }
     th { background-color: #eee; }
-    button { padding: 6px 12px; margin: 2px; }
+    button { padding: 6px 10px; margin: 2px; cursor: pointer; }
     .pending { background-color: #fffbe6; }
     .confirmed { background-color: #e6ffed; }
     .declined { background-color: #ffe6e6; }
     .blocked { background-color: #f8f8f8; }
+    .nowrap { white-space: nowrap; }
   </style>
 </head>
 <body>
@@ -23,10 +24,19 @@
       <tr>
         <th>ID</th>
         <th>Мотоцикл</th>
-        <th>С</th>
-        <th>По</th>
+        <th>Дата начала</th>
+        <th>Дата окончания</th>
         <th>Телефон</th>
         <th>Telegram ID</th>
+        <th>Базовая цена</th>
+        <th>Цена со скидкой</th>
+        <th>Доп. услуги</th>
+        <th>Стоимость доп. услуг</th>
+        <th>Залог</th>
+        <th>Итого</th>
+        <th>Экипировка</th>
+        <th>Адрес доставки</th>
+        <th>Комментарий</th>
         <th>Статус</th>
         <th>Действие</th>
       </tr>
@@ -49,25 +59,40 @@
       .then(res => res.json())
       .then(data => {
         const tbody = document.querySelector("tbody");
+
         data.forEach(booking => {
           const tr = document.createElement("tr");
           tr.className = booking.status;
 
+          const motoName = booking.moto_obj
+            ? `${booking.moto_obj.brand} ${booking.moto_obj.model}`
+            : booking.moto || `ID: ${booking.moto_id}`;
+
           tr.innerHTML = `
-            <td>${booking.id}</td>
-            <td>${booking.moto_id}</td>
+            <td>#${booking.id}</td>
+            <td>${motoName}</td>
             <td>${booking.start_date}</td>
             <td>${booking.end_date}</td>
             <td>${booking.phone || "-"}</td>
             <td>${booking.user_id || "-"}</td>
-            <td>${booking.status}</td>
+            <td>${booking.base_price?.toLocaleString("ru-RU") || "0"} ₽</td>
+            <td>${booking.discounted_price?.toLocaleString("ru-RU") || "0"} ₽</td>
+            <td>${booking.services || "-"}</td>
+            <td>${booking.extra_services_price?.toLocaleString("ru-RU") || "0"} ₽</td>
+            <td>${booking.deposit?.toLocaleString("ru-RU") || "0"} ₽</td>
+            <td><strong>${booking.total?.toLocaleString("ru-RU") || "0"} ₽</strong></td>
+            <td>${booking.equipment_details || "-"}</td>
+            <td>${booking.delivery_address || "-"}</td>
+            <td>${booking.comments || "-"}</td>
+            <td><strong>${booking.status}</strong></td>
             <td>
               ${booking.status === "pending" ? `
                 <button onclick="updateStatus(${booking.id}, 'confirmed')">Подтвердить</button>
                 <button onclick="updateStatus(${booking.id}, 'declined')">Отклонить</button>
-              ` : ""}
+              ` : "-"}
             </td>
           `;
+
           tbody.appendChild(tr);
         });
       });

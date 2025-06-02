@@ -11,7 +11,7 @@
     th { background-color: #eee; }
 
     .free { background-color: #fff; }
-    .confirmed { background-color: #90ee90; }
+    .confirmed { background-color: #d3d3d3; }
     .pending { background-color: #87cefa; }
     .blocked { background-color: #f08080; }
 
@@ -19,7 +19,7 @@
     .legend div { display: flex; align-items: center; gap: 5px; }
     .square { width: 15px; height: 15px; border: 1px solid #ccc; }
 
-    .square.confirmed { background-color: #90ee90; }
+    .square.confirmed { background-color: #d3d3d3; }
     .square.pending { background-color: #87cefa; }
     .square.blocked { background-color: #f08080; }
     .square.free { background-color: #fff; }
@@ -95,9 +95,7 @@
 
   <table id="calendar-table">
     <thead>
-      <tr>
-        <th>Мотоцикл</th>
-      </tr>
+      <tr><th>Мотоцикл</th></tr>
     </thead>
     <tbody id="calendar-body"></tbody>
   </table>
@@ -141,13 +139,15 @@
       return result;
     }
 
-    function openModal(motoName, motoId) {
-      document.getElementById("modal-moto").value = motoName;
-      document.getElementById("modal-moto").dataset.id = motoId;
+    function openModal(motoName, motoId, pricePerDay, deposit) {
+      const input = document.getElementById("modal-moto");
+      input.value = motoName;
+      input.dataset.id = motoId;
+      input.dataset.pricePerDay = pricePerDay;
+      input.dataset.deposit = deposit;
       document.getElementById("overlay").style.display = "block";
       document.getElementById("modal").style.display = "block";
     }
-
 
     function closeModal() {
       document.getElementById("overlay").style.display = "none";
@@ -162,8 +162,7 @@
     async function submitBooking() {
       const motoInput = document.getElementById("modal-moto");
       const motoName = motoInput.value;
-      const moto_id = parseInt(motoInput.dataset.id);  // ⬅️ читаем ID
-
+      const moto_id = parseInt(motoInput.dataset.id);
       const startStr = document.getElementById("modal-start").value;
       const endStr = document.getElementById("modal-end").value;
       const phone = document.getElementById("modal-phone").value;
@@ -178,9 +177,9 @@
       const end = new Date(endStr);
       const daysCount = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
 
-      const basePerDay = 10000;
+      const basePerDay = parseInt(motoInput.dataset.pricePerDay);
+      const deposit = parseInt(motoInput.dataset.deposit);
       const extra_services_price = 5000;
-      const deposit = 10000;
       const base_price = basePerDay * daysCount;
 
       let discount = 0;
@@ -228,7 +227,6 @@
         alert("Ошибка: " + (err.detail || "Не удалось создать бронь"));
       }
     }
-
 
     async function deleteMotorcycle(id) {
       const hasBookings = await fetch(`${bookingsUrl}?moto_id=${id}`).then(r => r.json());
@@ -286,7 +284,17 @@
         const addBtn = document.createElement("button");
         addBtn.innerText = "Добавить бронь";
         addBtn.className = "add-btn";
-        addBtn.onclick = () => openModal(fullName, moto.id);
+        addBtn.dataset.pricePerDay = moto.price_per_day;
+        addBtn.dataset.deposit = moto.deposit;
+        addBtn.onclick = () => {
+          const anyLocked = Array.from(tr.querySelectorAll('td'))
+            .some(td => td.dataset.locked === "true");
+          if (anyLocked) {
+            alert("Нельзя добавить бронь: выбранные даты заняты.");
+            return;
+          }
+          openModal(fullName, moto.id, moto.price_per_day, moto.deposit);
+        };
 
         tdName.appendChild(addBtn);
         tdName.appendChild(delBtn);
@@ -308,20 +316,10 @@
           dates.forEach((date, i) => {
             if (date >= from && date <= to) {
               cells[i].className = b.status;
-              cells[i].title =
-                `Заявка #${b.id}\n` +
-                `Статус: ${b.status}\n` +
-                `Период: ${b.start_date} – ${b.end_date}\n` +
-                `Телефон: ${b.phone || "-" }\n` +
-                `Telegram ID: ${b.user_id || "-" }\n` +
-                `Услуги: ${b.services || "-" }\n` +
-                `Адрес доставки: ${b.delivery_address || "-" }\n` +
-                `Экипировка: ${b.equipment_details || "-" }\n` +
-                `Пожелания: ${b.comments || "-" }\n` +
-                `Стоимость аренды: ${b.discounted_price?.toLocaleString("ru-RU")} руб.\n` +
-                `Доп. услуги: ${b.extra_services_price?.toLocaleString("ru-RU")} руб.\n` +
-                `Залог: ${b.deposit?.toLocaleString("ru-RU")} руб.\n` +
-                `Итого: ${b.total?.toLocaleString("ru-RU")} руб.`;
+              cells[i].title = `Заявка #${b.id}\nСтатус: ${b.status}`;
+              if (b.status === "confirmed") {
+                cells[i].dataset.locked = "true";
+              }
             }
           });
         });
