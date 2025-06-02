@@ -1,5 +1,6 @@
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, List
+
 
 class MotoCreate(BaseModel):
     brand: str
@@ -9,6 +10,7 @@ class MotoCreate(BaseModel):
     deposit: int
     image_url: Optional[str] = None
 
+
 class MotoOut(MotoCreate):
     id: int
 
@@ -16,8 +18,19 @@ class MotoOut(MotoCreate):
         "from_attributes": True
     }
 
+
+class MotoBrief(BaseModel):
+    id: int
+    brand: str
+    model: str
+
+    model_config = {
+        "from_attributes": True
+    }
+
+
 class BookingCreate(BaseModel):
-    moto: str
+    moto_id: int  # ✅ теперь передаём ID
     user_id: Optional[str] = ""
     phone: Optional[str] = ""
     start: str
@@ -35,7 +48,8 @@ class BookingCreate(BaseModel):
 
 class BookingOut(BaseModel):
     id: int
-    moto: str
+    moto_id: int
+    moto_obj: MotoBrief  # ✅ вложенная модель мотоцикла
     user_id: Optional[str]
     phone: Optional[str]
     start_date: str
@@ -50,10 +64,12 @@ class BookingOut(BaseModel):
     deposit: Optional[int]
     total: Optional[int]
     status: str
+    source: Optional[str]
 
     model_config = {
         "from_attributes": True
     }
+
 
 class BookingUpdate(BaseModel):
     status: str
