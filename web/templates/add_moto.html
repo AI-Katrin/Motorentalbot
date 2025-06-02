@@ -114,7 +114,7 @@
       const formData = new FormData(form);
 
       try {
-        const res = await fetch("/motos", {
+        const res = await fetch("/app/motos", {
           method: "POST",
           body: formData
         });
