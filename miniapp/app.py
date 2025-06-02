@@ -1,3 +1,7 @@
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
 from fastapi import FastAPI, Request, UploadFile, File, Form, Depends, APIRouter, HTTPException
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -6,17 +10,13 @@ from aiogram import Bot
 from pydantic import BaseModel
 from datetime import datetime
 from sqlalchemy.orm import Session
-import os
 import math
 import shutil
-import sys
 from config import BOT_TOKEN, EMPLOYEE_CHAT_ID
 from schemas import BookingCreate
 from models import Booking, Motorcycle
 from database import get_db
 from routers import bookings, motos
-
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 app = FastAPI()
 router = APIRouter()
