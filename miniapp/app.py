@@ -143,9 +143,13 @@ async def summary_page(request: Request,
         "extra_services_price": extra_services_price
     })
 
-@app.get("/admin", response_class=HTMLResponse)
+@app.get("/admin/calendar", response_class=HTMLResponse)
 async def show_admin_calendar(request: Request):
     return admin_templates.TemplateResponse("web_calendar.html", {"request": request})
+
+@app.get("/admin/add-moto", response_class=HTMLResponse)
+async def admin_add_moto_page(request: Request):
+    return admin_templates.TemplateResponse("add-moto.html", {"request": request})
 
 @app.get("/admin/requests", response_class=HTMLResponse)
 async def admin_requests(request: Request):
