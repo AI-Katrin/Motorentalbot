@@ -30,7 +30,8 @@ class MotoBrief(BaseModel):
 
 
 class BookingCreate(BaseModel):
-    moto_id: int  # ✅ теперь передаём ID
+    moto_id: int
+    moto: Optional[str] = None
     user_id: Optional[str] = ""
     phone: Optional[str] = ""
     start: str
@@ -44,6 +45,7 @@ class BookingCreate(BaseModel):
     extra_services_price: int = 0
     deposit: int = 0
     total: int = 0
+
 
 
 class BookingOut(BaseModel):
