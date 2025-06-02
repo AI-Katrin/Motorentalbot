@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Оформление аренды</title>
-  <link rel="stylesheet" href="https://cdn.mobiscroll.com/5.34.1/css/mobiscroll.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -79,6 +79,11 @@
       background-color: #e63946;
       color: white;
     }
+    .flatpickr-day.disabled {
+      background: #e6e6e6 !important;
+      color: #999 !important;
+      cursor: not-allowed;
+    }
   </style>
 </head>
 <body>
@@ -92,7 +97,6 @@
   <img id="moto-image" src="" alt="Фото мотоцикла">
   <label for="date-range">Период аренды:</label>
   <input type="text" id="date-range" name="date-range" placeholder="Выберите период" readonly>
-  <p id="duration-info" style="margin-top:10px; font-size:14px; color:#555;"></p>
   <input type="hidden" id="user_id" name="user_id">
   <input type="hidden" id="phone" name="phone">
   <input type="hidden" id="deposit">
@@ -109,77 +113,78 @@
 <footer>
   <p>Телефон: +7 (499) 460-47-08 | Email: sales@lomovtravel.com | Адрес: ул. Автозаводская, д.8</p>
 </footer>
-<script src="https://cdn.mobiscroll.com/5.34.1/js/mobiscroll.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/ru.js"></script>
 <script>
-  mobiscroll.setOptions({ locale: mobiscroll.localeRu, theme: 'ios', themeVariant: 'light' });
-
   let currentMoto = "";
   let unavailableRanges = [];
-  let markedDays = [];
   let pricePerDay = 0;
   let deposit = 0;
+  let calendar; // сохраняем экземпляр flatpickr
 
-  async function loadBookings(motoId) {
-    const res = await fetch("/bookings/");
-    const bookings = await res.json();
-    bookings.forEach(b => {
-      if (b.moto_id === motoId && b.status === "confirmed") {
-        const start = new Date(new Date(b.start_date).getTime() - 2 * 60 * 60 * 1000);
-        const end = new Date(new Date(b.end_date).getTime() + 2 * 60 * 60 * 1000);
-        unavailableRanges.push({ start, end });
-        markedDays.push({ date: start.toISOString().split('T')[0], color: 'orange' });
-      }
+  function getQueryParams() {
+    const params = {};
+    window.location.search.substring(1).split("&").forEach(pair => {
+      const [key, value] = pair.split("=");
+      params[decodeURIComponent(key)] = decodeURIComponent(value || "");
     });
+    return params;
   }
 
-  async function loadMotoData(motoName) {
-    const res = await fetch("/motos/");
-    const motos = await res.json();
-    const moto = motos.find(m => `${m.brand} ${m.model}`.trim() === motoName.trim());
-    if (moto) {
-      pricePerDay = moto.price_per_day;
-      deposit = moto.deposit;
-      document.getElementById("price_per_day").value = pricePerDay;
-      document.getElementById("deposit").value = deposit;
-
-      if (moto.image_url) {
-        const img = document.getElementById("moto-image");
-        img.src = moto.image_url.startsWith("http") ? moto.image_url : `${location.origin}${moto.image_url}`;
-        img.style.display = "block";
-      }
-
-      await loadBookings(moto.id);
-
-      mobiscroll.datepicker('#date-range', {
-        controls: ['calendar', 'timegrid'],
-        display: 'anchored',
-        range: true,
-        min: new Date(),
-        invalid: unavailableRanges,
-        marked: markedDays,
-        onChange: function (event, inst) {
-          calculatePrice(event.value);
+  async function loadBookings(motoId) {
+    try {
+      const res = await fetch("/bookings/");
+      const bookings = await res.json();
+      bookings.forEach(b => {
+        if (b.moto_id === motoId && b.status === "confirmed") {
+          const start = new Date(new Date(b.start_date).getTime() - 2 * 60 * 60 * 1000);
+          const end = new Date(new Date(b.end_date).getTime() + 2 * 60 * 60 * 1000);
+          unavailableRanges.push({ from: start, to: end });
         }
       });
+    } catch (e) {
+      console.error("Ошибка загрузки броней", e);
     }
   }
 
-  function calculatePrice(dates) {
-    if (!dates || dates.length !== 2 || !pricePerDay) return;
-    const [start, end] = dates;
-    const durationMs = end - start;
-    const hours = Math.floor(durationMs / 3600000);
-    const days = Math.floor(hours / 24);
-    const remainder = hours % 24;
-    document.getElementById("duration-info").textContent = `Вы выбрали: ${days} д. ${remainder} ч.`;
+  async function loadMotoData(motoName) {
+    try {
+      const res = await fetch("/motos/");
+      const motos = await res.json();
+      const moto = motos.find(m => `${m.brand} ${m.model}`.trim() === motoName.trim());
+      if (moto) {
+        pricePerDay = moto.price_per_day;
+        deposit = moto.deposit;
+        document.getElementById("price_per_day").value = pricePerDay;
+        document.getElementById("deposit").value = deposit;
 
-    const totalDays = Math.ceil(durationMs / (1000 * 60 * 60 * 24));
-    const base = totalDays * pricePerDay;
+        if (moto.image_url) {
+          const img = document.getElementById("moto-image");
+          img.src = moto.image_url.startsWith("http") ? moto.image_url : `${location.origin}${moto.image_url}`;
+          img.style.display = "block";
+        }
+
+        await loadBookings(moto.id);
+        calendar.set("disable", unavailableRanges);
+      }
+    } catch (e) {
+      console.error("Ошибка загрузки данных мотоцикла", e);
+    }
+  }
+
+  function calculatePrice() {
+    const range = document.getElementById("date-range")._flatpickr?.selectedDates;
+    if (!range || range.length !== 2 || !pricePerDay) return;
+
+    const [start, end] = range;
+    const days = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
+    const base = days * pricePerDay;
+
     let discount = 0;
-    if (totalDays >= 30) discount = 0.25;
-    else if (totalDays >= 20) discount = 0.20;
-    else if (totalDays >= 11) discount = 0.15;
-    else if (totalDays >= 7) discount = 0.10;
+    if (days >= 30) discount = 0.25;
+    else if (days >= 20) discount = 0.20;
+    else if (days >= 11) discount = 0.15;
+    else if (days >= 7) discount = 0.10;
 
     const discounted = Math.round(base * (1 - discount));
     document.getElementById("base-price").textContent = base.toLocaleString("ru-RU");
@@ -187,8 +192,7 @@
   }
 
   function submitForm() {
-    const picker = mobiscroll.getInst('#date-range');
-    const range = picker.getVal();
+    const range = document.getElementById("date-range")._flatpickr?.selectedDates;
     if (!range || range.length !== 2 || !currentMoto) {
       alert("Пожалуйста, выберите период аренды.");
       return;
@@ -211,11 +215,22 @@
   }
 
   window.addEventListener("DOMContentLoaded", async () => {
-    const params = Object.fromEntries(new URLSearchParams(location.search));
+    const params = getQueryParams();
     currentMoto = params["moto"] || "";
     document.getElementById("moto-display").textContent = currentMoto;
     document.getElementById("user_id").value = params["user_id"] || "";
     document.getElementById("phone").value = params["phone"] || "";
+
+    calendar = flatpickr("#date-range", {
+      mode: "range",
+      locale: "ru",
+      minDate: "today",
+      dateFormat: "d.m.Y H:i",
+      enableTime: true,
+      time_24hr: true,
+      disable: [],
+      onChange: calculatePrice,
+    });
 
     await loadMotoData(currentMoto);
   });
