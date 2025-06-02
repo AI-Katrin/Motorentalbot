@@ -12,8 +12,9 @@ class MotoCreate(BaseModel):
 class MotoOut(MotoCreate):
     id: int
 
-    class Config:
-        orm_mode = True
+    model_config = {
+        "from_attributes": True
+    }
 
 class BookingCreate(BaseModel):
     moto: str
@@ -30,7 +31,6 @@ class BookingCreate(BaseModel):
     extra_services_price: Optional[int]
     deposit: Optional[int]
     total: Optional[int]
-
 
 class BookingOut(BaseModel):
     id: int
@@ -50,8 +50,9 @@ class BookingOut(BaseModel):
     total: Optional[int]
     status: str
 
-    class Config:
-        orm_mode = True
+    model_config = {
+        "from_attributes": True
+    }
 
 class BookingUpdate(BaseModel):
     status: str
