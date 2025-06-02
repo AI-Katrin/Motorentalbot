@@ -30,7 +30,7 @@ class Booking(Base):
     source = Column(String, default="telegram_app")
 
 
-class Moto(Base):
+class Motorcycle(Base):
     __tablename__ = "motos"
 
     id = Column(Integer, primary_key=True, index=True)
@@ -39,4 +39,5 @@ class Moto(Base):
     description = Column(String, nullable=True)
     price_per_day = Column(Integer, nullable=False)
     deposit = Column(Integer, nullable=False)
-    image_path = Column(String, nullable=True)  # 🔄 Новое поле для хранения пути к изображению
+    image_path = Column(String, nullable=True)
+
