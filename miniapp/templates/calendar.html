@@ -132,6 +132,10 @@
     });
   }
 
+  function isInBlockedInterval(date) {
+    return blockedIntervals.some(interval => date >= interval.from && date <= interval.to);
+  }
+
   async function loadMotoData(motoName) {
     const res = await fetch("/motos/");
     const motos = await res.json();
@@ -148,10 +152,6 @@
       }
       await loadBookings(moto.id);
     }
-  }
-
-  function isBlocked(date) {
-    return blockedIntervals.some(interval => date >= interval.from && date <= interval.to);
   }
 
   function calculatePrice() {
@@ -206,12 +206,16 @@
       minDate: "today",
       dateFormat: "d.m.Y H:i",
       locale: "ru",
-      disable: [isBlocked],
       onChange: function(selectedDates) {
-        if (!selectedDates[0]) return;
-        const minEndDate = new Date(selectedDates[0].getTime() + 1 * 60 * 1000);
+        const start = selectedDates[0];
+        if (!start) return;
+        if (isInBlockedInterval(start)) {
+          alert("Выбранное время начала пересекается с другой бронью. Пожалуйста, выберите другое время.");
+          startPicker.clear();
+          return;
+        }
+        const minEndDate = new Date(start.getTime() + 1 * 60 * 1000);
         endPicker.set("minDate", minEndDate);
-        endPicker.set("disable", [isBlocked]);
       }
     });
 
@@ -220,8 +224,16 @@
       time_24hr: true,
       dateFormat: "d.m.Y H:i",
       locale: "ru",
-      disable: [isBlocked],
-      onChange: calculatePrice
+      onChange: function(selectedDates) {
+        const end = selectedDates[0];
+        if (!end) return;
+        if (isInBlockedInterval(end)) {
+          alert("Выбранное время окончания пересекается с другой бронью. Пожалуйста, выберите другое время.");
+          endPicker.clear();
+          return;
+        }
+        calculatePrice();
+      }
     });
   });
 </script>
