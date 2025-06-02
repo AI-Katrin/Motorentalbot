@@ -1,5 +1,8 @@
 import sys
 import os
+import math
+import shutil
+
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from fastapi import FastAPI, Request, UploadFile, File, Form, Depends, APIRouter, HTTPException
@@ -10,15 +13,13 @@ from aiogram import Bot
 from pydantic import BaseModel
 from datetime import datetime
 from sqlalchemy.orm import Session
-import math
-import shutil
 from uuid import uuid4
-
 from config import BOT_TOKEN, EMPLOYEE_CHAT_ID
 from schemas import BookingCreate
 from models import Booking, Motorcycle
 from database import get_db
 from routers import bookings
+from routers import motos
 
 app = FastAPI()
 router = APIRouter()
@@ -235,4 +236,5 @@ async def create_amo_lead(data: BookingCreate, db: Session = Depends(get_db)):
 
 # Подключаем только нужные роутеры
 app.include_router(bookings.router)
+app.include_router(motos.router)
 app.include_router(router, prefix="/app")
