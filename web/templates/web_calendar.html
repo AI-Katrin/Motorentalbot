@@ -88,11 +88,15 @@
     <div><div class="square free"></div> Свободно</div>
   </div>
 
+  <div style="text-align: center; margin-top: 20px;">
+    <button onclick="changeOffset(-days)">← Назад</button>
+    <button onclick="changeOffset(days)">Вперёд →</button>
+  </div>
+
   <table id="calendar-table">
     <thead>
       <tr>
         <th>Мотоцикл</th>
-        <!-- даты вставятся скриптом -->
       </tr>
     </thead>
     <tbody id="calendar-body"></tbody>
@@ -111,6 +115,7 @@
     <input type="text" id="modal-phone">
     <label>Telegram ID:</label>
     <input type="text" id="modal-telegram">
+    <div id="discount-info" style="margin-bottom: 10px; font-size: 14px; color: #2a9d8f;"></div>
     <button onclick="submitBooking()">Сохранить</button>
   </div>
 
@@ -119,9 +124,8 @@
     const motosUrl = "/motos";
     const createBookingUrl = "/bookings/confirm";
     const deleteMotoUrl = "/api/motorcycles/";
-
-    const startDate = new Date();
     const days = 14;
+    let offsetDays = 0;
 
     function formatDate(date) {
       return date.toISOString().split("T")[0];
@@ -148,29 +152,75 @@
       document.getElementById("modal").style.display = "none";
     }
 
-    async function submitBooking() {
-      const data = {
-        moto: document.getElementById("modal-moto").value,
-        start: document.getElementById("modal-start").value,
-        end: document.getElementById("modal-end").value,
-        phone: document.getElementById("modal-phone").value,
-        user_id: document.getElementById("modal-telegram").value,
-      };
+    function changeOffset(delta) {
+      offsetDays += delta;
+      createCalendar();
+    }
 
-      if (!data.start || !data.end) {
+    async function submitBooking() {
+      const motoName = document.getElementById("modal-moto").value;
+      const startStr = document.getElementById("modal-start").value;
+      const endStr = document.getElementById("modal-end").value;
+      const phone = document.getElementById("modal-phone").value;
+      const user_id = document.getElementById("modal-telegram").value;
+
+      if (!startStr || !endStr) {
         alert("Заполните даты!");
         return;
       }
 
-      await fetch(createBookingUrl, {
+      const start = new Date(startStr);
+      const end = new Date(endStr);
+      const daysCount = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
+
+      const basePerDay = 10000;
+      const extra_services_price = 5000;
+      const deposit = 10000;
+      const base_price = basePerDay * daysCount;
+
+      let discount = 0;
+      if (daysCount >= 30) discount = 0.25;
+      else if (daysCount >= 20) discount = 0.20;
+      else if (daysCount >= 11) discount = 0.15;
+      else if (daysCount >= 7) discount = 0.10;
+
+      const discounted_price = Math.round(base_price * (1 - discount));
+      const total = discounted_price + extra_services_price + deposit;
+
+      document.getElementById("discount-info").innerText =
+        discount > 0 ? `Применена скидка: ${discount * 100}%` : "Скидка не применяется";
+
+      const data = {
+        moto: motoName,
+        start: startStr,
+        end: endStr,
+        phone,
+        user_id,
+        services: "",
+        equipment_details: "",
+        delivery_address: "",
+        comments: "",
+        base_price,
+        discounted_price,
+        extra_services_price,
+        deposit,
+        total
+      };
+
+      const res = await fetch(createBookingUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data)
       });
 
-      closeModal();
-      alert("Бронирование создано!");
-      location.reload();
+      if (res.ok) {
+        closeModal();
+        alert("Бронирование создано!");
+        location.reload();
+      } else {
+        const err = await res.json();
+        alert("Ошибка: " + (err.detail || "Не удалось создать бронь"));
+      }
     }
 
     async function deleteMotorcycle(id) {
@@ -195,7 +245,12 @@
     async function createCalendar() {
       const headerRow = document.querySelector("#calendar-table thead tr");
       const body = document.getElementById("calendar-body");
-      const dates = getDatesArray(startDate, days);
+      headerRow.innerHTML = "<th>Мотоцикл</th>";
+      body.innerHTML = "";
+
+      const baseStartDate = new Date();
+      baseStartDate.setDate(baseStartDate.getDate() + offsetDays);
+      const dates = getDatesArray(baseStartDate, days);
 
       dates.forEach(d => {
         const th = document.createElement("th");
@@ -213,7 +268,6 @@
       motos.forEach(moto => {
         const fullName = `${moto.brand} ${moto.model}`;
         const tr = document.createElement("tr");
-
         const tdName = document.createElement("td");
         tdName.innerHTML = `<strong>${fullName}</strong><br>`;
 
