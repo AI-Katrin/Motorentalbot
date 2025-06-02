@@ -39,5 +39,5 @@ class Motorcycle(Base):
     description = Column(String, nullable=True)
     price_per_day = Column(Integer, nullable=False)
     deposit = Column(Integer, nullable=False)
-    image_path = Column(String, nullable=True)
+    image_url = Column(String, nullable=True)
 

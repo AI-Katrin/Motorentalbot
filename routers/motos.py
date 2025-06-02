@@ -27,11 +27,11 @@ def create_moto(
     # Генерируем уникальное имя файла
     ext = image.filename.split(".")[-1]
     filename = f"{uuid4().hex}.{ext}"
-    image_path = os.path.join(IMAGES_DIR, filename)
+    image_url= os.path.join(IMAGES_DIR, filename)
 
     # Сохраняем файл
     try:
-        with open(image_path, "wb") as buffer:
+        with open(image_url, "wb") as buffer:
             shutil.copyfileobj(image.file, buffer)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Ошибка при сохранении изображения: {e}")
@@ -43,7 +43,7 @@ def create_moto(
         description=description,
         price_per_day=price_per_day,
         deposit=deposit,
-        image_path=f"/static/images/{filename}"
+        image_url=f"/static/images/{filename}"
     )
     db.add(moto)
     db.commit()

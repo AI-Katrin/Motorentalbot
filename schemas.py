@@ -7,7 +7,7 @@ class MotoCreate(BaseModel):
     description: str
     price_per_day: int
     deposit: int
-    image_path: Optional[str] = None
+    image_url: Optional[str] = None
 
 class MotoOut(MotoCreate):
     id: int
