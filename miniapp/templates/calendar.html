@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Оформление аренды</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -14,7 +15,6 @@
       flex-direction: column;
       align-items: center;
     }
-
     header, footer {
       width: 100%;
       max-width: 420px;
@@ -23,7 +23,6 @@
       text-align: center;
       font-size: 12px;
     }
-
     .content {
       width: 100%;
       max-width: 420px;
@@ -31,39 +30,32 @@
       background-color: #fff;
       text-align: center;
     }
-
     h1 {
       font-size: 20px;
       margin-bottom: 20px;
     }
-
     label {
       display: block;
       margin: 10px 0 5px;
       font-size: 14px;
     }
-
-    input[type="datetime-local"] {
+    input[type="text"] {
       width: 100%;
       padding: 8px;
       margin-bottom: 15px;
       border: 1px solid #ccc;
       border-radius: 5px;
-      appearance: auto;
     }
-
     #price-summary {
       margin-top: 15px;
       font-size: 14px;
       text-align: left;
     }
-
     .buttons {
       display: flex;
       justify-content: space-between;
       margin-top: 20px;
     }
-
     .button {
       flex: 1;
       padding: 12px;
@@ -73,14 +65,19 @@
       border-radius: 8px;
       cursor: pointer;
     }
-
     .back {
       background-color: #d3d3d3;
     }
-
     .continue {
       background-color: #e63946;
       color: white;
+    }
+
+    /* Стиль для недоступных дат */
+    .flatpickr-day.disabled {
+      background: #e6e6e6 !important;
+      color: #999 !important;
+      cursor: not-allowed;
     }
   </style>
 </head>
@@ -93,20 +90,15 @@
 
 <div class="content">
   <h1>Оформление аренды</h1>
-  <p><strong>Мотоцикл:</strong> <span id="moto-display">{{ moto }}</span></p>
+  <p><strong>Мотоцикл:</strong> <span id="moto-display"></span></p>
 
-  <label for="start">Начало аренды:</label>
-  <input type="datetime-local" id="start" name="start" step="1800">
+  <label for="date-range">Период аренды:</label>
+  <input type="text" id="date-range" name="date-range" placeholder="Выберите период" readonly>
 
-  <label for="end">Окончание аренды:</label>
-  <input type="datetime-local" id="end" name="end" step="1800">
-
-  <input type="hidden" id="user_id">
-  <input type="hidden" id="phone">
-
+  <input type="hidden" id="user_id" name="user_id" value="">
+  <input type="hidden" id="phone" name="phone" value="">
 
   <div id="price-summary">
-    <p>Количество суток: <span id="days-count">—</span> суток</p>
     <p>Стоимость (без скидки): <span id="base-price">—</span> руб.</p>
     <p>Стоимость аренды (с учетом скидки): <span id="discounted-price">—</span> руб.</p>
   </div>
@@ -123,46 +115,65 @@
   </p>
 </footer>
 
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/ru.js"></script>
 <script>
+  let prices = {};
+  let deposits = {};
+  let currentMoto = "";
+  let unavailableRanges = [];
+
   function getQueryParams() {
     const params = {};
     window.location.search.substring(1).split("&").forEach(pair => {
       const [key, value] = pair.split("=");
-      if (key) {
-        params[decodeURIComponent(key)] = decodeURIComponent(value || "");
-      }
+      params[decodeURIComponent(key)] = decodeURIComponent(value || "");
     });
     return params;
   }
 
-  function setMinDateInputs() {
-    const now = new Date();
-    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-    const minDate = now.toISOString().slice(0, 16);
+  async function loadBookings(motoName) {
+    try {
+      const res = await fetch("https://motorentalbot.com/bookings");
+      const bookings = await res.json();
+      bookings.forEach(b => {
+        const name = b.moto;
+        if (name === motoName) {
+          const start = new Date(new Date(b.start_date).getTime() - 2 * 60 * 60 * 1000);
+          const end = new Date(new Date(b.end_date).getTime() + 2 * 60 * 60 * 1000);
+          unavailableRanges.push({ from: start, to: end });
+        }
+      });
+    } catch (e) {
+      console.error("Ошибка загрузки броней", e);
+    }
+  }
 
-    const startInput = document.getElementById("start");
-    const endInput = document.getElementById("end");
-
-    startInput.min = minDate;
-    endInput.min = minDate;
+  async function loadMotoData() {
+    try {
+      const res = await fetch("https://motorentalbot.com/api/motorcycles");
+      const motos = await res.json();
+      motos.forEach(m => {
+        const name = `${m.brand} ${m.model}`;
+        prices[name] = m.price_per_day;
+        deposits[name] = m.deposit;
+      });
+      calculatePrice();
+    } catch (e) {
+      console.error("Ошибка загрузки мотоциклов", e);
+    }
   }
 
   function calculatePrice() {
-    const start = new Date(document.getElementById("start").value);
-    const end = new Date(document.getElementById("end").value);
+    const range = document.getElementById("date-range")._flatpickr.selectedDates;
+    if (range.length !== 2 || !currentMoto) return;
+    const [start, end] = range;
+
     const baseEl = document.getElementById("base-price");
     const discountedEl = document.getElementById("discounted-price");
-    const daysEl = document.getElementById("days-count");
-
-    if (isNaN(start.getTime()) || isNaN(end.getTime()) || end <= start) {
-      baseEl.textContent = "—";
-      discountedEl.textContent = "—";
-      daysEl.textContent = "—";
-      return;
-    }
 
     const days = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
-    const pricePerDay = parseInt("{{ price_per_day }}");
+    const pricePerDay = prices[currentMoto] || 0;
     const base = days * pricePerDay;
 
     let discount = 0;
@@ -172,70 +183,60 @@
     else if (days >= 7) discount = 0.10;
 
     const discounted = Math.round(base * (1 - discount));
+
     baseEl.textContent = base.toLocaleString("ru-RU");
     discountedEl.textContent = discounted.toLocaleString("ru-RU");
-    daysEl.textContent = days;
   }
-        function submitForm() {
-          const start = document.getElementById("start").value;
-          const end = document.getElementById("end").value;
-          const moto = document.getElementById("moto-display").textContent;
-          const user_id = document.getElementById("user_id").value;
-          const phone = document.getElementById("phone").value;
 
-          const priceWithoutDiscount = document.getElementById("base-price").textContent.replace(/\D/g, '');
-          const priceWithDiscount = document.getElementById("discounted-price").textContent.replace(/\D/g, '');
+  function submitForm() {
+    const range = document.getElementById("date-range")._flatpickr.selectedDates;
+    if (range.length !== 2 || !currentMoto) {
+      alert("Пожалуйста, выберите доступный период аренды.");
+      return;
+    }
+    const [start, end] = range;
 
-          const params = getQueryParams();
-          const deposit = params.deposit && !isNaN(Number(params.deposit)) ? params.deposit : "0";
-          const pricePerDay = params.price_per_day && !isNaN(Number(params.price_per_day)) ? params.price_per_day : "0";
+    const data = {
+      user_id: document.getElementById("user_id").value,
+      phone: document.getElementById("phone").value,
+      motorcycle: currentMoto,
+      start: start.toISOString(),
+      end: end.toISOString()
+    };
 
-          // ✅ лог ставим здесь:
-          console.log("Параметры:", {
-            moto,
-            start,
-            end,
-            user_id,
-            phone,
-            base_price: priceWithoutDiscount,
-            discounted_price: priceWithDiscount,
-            deposit,
-            price_per_day: pricePerDay
-          });
+    fetch("https://motorentalbot.com/app/confirm", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    })
+    .then(r => r.json())
+    .then(() => alert("Бронирование отправлено!"))
+    .catch(err => console.error(err));
+  }
 
-          if (!start || !end) {
-            alert("Пожалуйста, выберите даты аренды.");
-            return;
-          }
+  window.addEventListener('DOMContentLoaded', async () => {
+    const params = getQueryParams();
+    if (params['moto']) {
+      currentMoto = params['moto'];
+      document.getElementById('moto-display').textContent = currentMoto;
+    }
+    document.getElementById('user_id').value = params['user_id'] || "";
+    document.getElementById('phone').value = params['phone'] || "";
 
-          const queryParams = new URLSearchParams({
-            moto,
-            start,
-            end,
-            user_id,
-            phone,
-            base_price: priceWithoutDiscount,
-            discounted_price: priceWithDiscount,
-            deposit,
-            price_per_day: pricePerDay
-          }).toString();
+    await loadBookings(currentMoto);
+    await loadMotoData();
 
-          window.location.href = `/app/services?${queryParams}`;
-        }
-
-        document.addEventListener("DOMContentLoaded", () => {
-          setMinDateInputs();
-
-          const params = getQueryParams();
-          if (params.user_id) document.getElementById("user_id").value = params.user_id;
-          if (params.phone) document.getElementById("phone").value = params.phone;
-
-          document.getElementById("start").addEventListener("change", calculatePrice);
-          document.getElementById("end").addEventListener("change", calculatePrice);
-          document.getElementById("start").addEventListener("focus", setMinDateInputs);
-          document.getElementById("end").addEventListener("focus", setMinDateInputs);
-        });
-
+    flatpickr("#date-range", {
+      mode: "range",
+      locale: "ru",
+      minDate: "today",
+      dateFormat: "d.m.Y H:i",
+      enableTime: true,
+      time_24hr: true,
+      disable: unavailableRanges,
+      onChange: calculatePrice
+    });
+  });
 </script>
 
 </body>

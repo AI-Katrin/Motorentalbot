@@ -15,48 +15,27 @@
       flex-direction: column;
       align-items: center;
     }
-
-    header {
+    header, footer {
       width: 100%;
       max-width: 420px;
       background-color: #fff;
       padding: 10px;
       text-align: center;
     }
-
     header .top-info {
       display: flex;
       justify-content: space-between;
       align-items: center;
     }
-
-    header .top-info h2 {
-      margin: 0;
-      font-size: 14px;
-    }
-
-    header .top-info p {
-      margin: 0;
-      font-size: 12px;
-    }
-
-    footer {
-      width: 100%;
-      max-width: 420px;
-      background-color: #fff;
-      padding: 10px;
-      text-align: center;
-      font-size: 12px;
-      margin-top: 10px;
-    }
-
+    header .top-info h2 { margin: 0; font-size: 14px; }
+    header .top-info p { margin: 0; font-size: 12px; }
+    footer { font-size: 12px; margin-top: 10px; }
     .content {
       width: 100%;
       max-width: 420px;
       padding: 15px;
       text-align: center;
     }
-
     .swiper {
       width: 100%;
       height: 420px;
@@ -64,14 +43,12 @@
       overflow: hidden;
       position: relative;
     }
-
     .swiper-wrapper {
       height: 100%;
       display: flex;
       align-items: center;
       transition-timing-function: ease-in-out;
     }
-
     .swiper-slide {
       width: 100% !important;
       flex-shrink: 0;
@@ -85,7 +62,6 @@
       border-radius: 10px;
       cursor: pointer;
     }
-
     .img-wrapper {
       width: 100%;
       height: 200px;
@@ -93,28 +69,15 @@
       justify-content: center;
       align-items: center;
     }
-
     .img-wrapper img {
       max-width: 300px;
       max-height: 100%;
       object-fit: contain;
       display: block;
     }
-
-    .moto-info {
-      margin-top: 10px;
-    }
-
-    .moto-info h2 {
-      font-size: 18px;
-      margin: 5px 0;
-    }
-
-    .moto-info p {
-      font-size: 14px;
-      margin: 3px 0;
-    }
-
+    .moto-info { margin-top: 10px; }
+    .moto-info h2 { font-size: 18px; margin: 5px 0; }
+    .moto-info p { font-size: 14px; margin: 3px 0; }
     .buttons {
       display: flex;
       justify-content: space-between;
@@ -122,7 +85,6 @@
       max-width: 420px;
       margin-top: 15px;
     }
-
     .button {
       flex: 1;
       padding: 12px;
@@ -132,22 +94,12 @@
       font-size: 16px;
       border-radius: 8px;
     }
-
-    .back {
-      background-color: #d3d3d3;
-    }
-
-    .continue {
-      background-color: #007bff;
-      color: white;
-    }
-
-    .swiper-button-prev,
-    .swiper-button-next {
+    .back { background-color: #d3d3d3; }
+    .continue { background-color: #007bff; color: white; }
+    .swiper-button-prev, .swiper-button-next {
       color: black;
       z-index: 10;
     }
-
     .modal {
       position: fixed;
       top: 0; left: 0;
@@ -158,11 +110,7 @@
       align-items: center;
       z-index: 9999;
     }
-
-    .modal.active {
-      display: flex;
-    }
-
+    .modal.active { display: flex; }
     .modal-content {
       background: #fff;
       padding: 20px;
@@ -174,46 +122,27 @@
       line-height: 1.5;
       position: relative;
     }
-
-    .modal-content h2 {
-      font-size: 20px;
-      font-weight: bold;
-      margin-bottom: 10px;
-    }
-
-    .modal-content p {
-      margin: 5px 0;
-      white-space: pre-line;
-    }
-
+    .modal-content h2 { font-size: 20px; font-weight: bold; margin-bottom: 10px; }
+    .modal-content p { margin: 5px 0; white-space: pre-line; }
     .modal-content .close {
       position: absolute;
-      top: 10px;
-      right: 10px;
-      font-size: 20px;
-      cursor: pointer;
+      top: 10px; right: 10px;
+      font-size: 20px; cursor: pointer;
     }
-
     .modal-buttons {
       display: flex;
       justify-content: space-between;
       gap: 10px;
       margin-top: 20px;
     }
-
-    .modal-buttons .button {
-      flex: 1;
-    }
+    .modal-buttons .button { flex: 1; }
   </style>
 </head>
 <body>
   <header>
     <div class="top-info">
       <h2>Аренда мотоциклов / Мотоэвакуация</h2>
-      <p>
-        <strong>+7 (499) 460-47-08</strong><br />
-        sales@lomovtravel.com
-      </p>
+      <p><strong>+7 (499) 460-47-08</strong><br />sales@lomovtravel.com</p>
     </div>
   </header>
 
@@ -224,15 +153,14 @@
         {% for moto in motorcycles %}
         <div class="swiper-slide"
              onclick="openModal(this)"
-             data-name="{{ moto.name }}"
-             data-description="{{ moto.description | default('Описание недоступно.') }}"
-             data-specs="{{ moto.specs | default('') }}">
+             data-name="{{ moto.brand }} {{ moto.model }}"
+             data-description="{{ moto.description }}">
           <div class="img-wrapper">
-            <img src="{{ moto.image }}" alt="{{ moto.name }}" />
+            <img src="{{ moto.image }}" alt="{{ moto.brand }} {{ moto.model }}" />
           </div>
           <div class="moto-info">
-            <h2>{{ moto.name }}</h2>
-            <p>Стоимость: {{ moto.price }} / сутки</p>
+            <h2>{{ moto.brand }} {{ moto.model }}</h2>
+            <p>Стоимость: {{ moto.price_per_day }} / сутки</p>
             <p>Залог: {{ moto.deposit }}</p>
           </div>
         </div>
@@ -250,20 +178,14 @@
   </div>
 
   <footer>
-    <p>
-      Телефон: +7 (499) 460-47-08 |
-      Email: sales@lomovtravel.com |
-      Адрес: ул. Автозаводская, д.8
-    </p>
+    <p>Телефон: +7 (499) 460-47-08 | Email: sales@lomovtravel.com | Адрес: ул. Автозаводская, д.8</p>
   </footer>
 
-  <!-- Модальное окно -->
   <div id="modal" class="modal">
     <div class="modal-content">
       <span class="close" onclick="closeModal()">&times;</span>
       <h2 id="modal-title"></h2>
       <p id="modal-description"></p>
-      <p id="modal-specs"></p>
       <div class="modal-buttons">
         <button class="button continue" onclick="selectMoto()">Выбрать</button>
         <button class="button back" onclick="closeModal()">Назад</button>
@@ -273,67 +195,9 @@
 
   <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
   <script>
-    document.addEventListener("DOMContentLoaded", function () {
-      const tg = window.Telegram?.WebApp;
-      if (tg) tg.expand();
-
-      const urlParams = new URLSearchParams(window.location.search);
-      const user_id = urlParams.get("user_id");
-      const phone = urlParams.get("phone");
-
-      const swiper = new Swiper(".swiper", {
-        loop: true,
-        pagination: {
-          el: ".swiper-pagination",
-          clickable: true,
-        },
-        navigation: {
-          nextEl: ".swiper-button-next",
-          prevEl: ".swiper-button-prev",
-        },
-        simulateTouch: true,
-        touchRatio: 1,
-      });
-
-      window.continueRent = function () {
-        const activeSlide = document.querySelector(".swiper-slide-active");
-        const motoName = activeSlide.querySelector("h2").innerText;
-        const motoPrice = activeSlide.querySelectorAll("p")[0].innerText;
-        const motoDeposit = activeSlide.querySelectorAll("p")[1].innerText;
-
-        const data = {
-          user_id: user_id,
-          phone: phone,
-          motorcycle: {
-            name: motoName,
-            price: motoPrice,
-            deposit: motoDeposit,
-          },
-        };
-
-        fetch("https://motorentalbot.com/app/rent", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(data),
-        })
-          .then((response) => response.json())
-          .then((result) => {
-            if (tg) tg.close();
-          })
-          .catch((error) => console.error("Ошибка отправки:", error));
-      };
-    });
-
     function openModal(el) {
-      const title = el.dataset.name || "Без названия";
-      const desc = el.dataset.description || "Описание недоступно.";
-      const specs = el.dataset.specs || "";
-
-      document.getElementById("modal-title").textContent = title;
-      document.getElementById("modal-description").textContent = desc;
-      document.getElementById("modal-specs").textContent = specs;
+      document.getElementById("modal-title").textContent = el.dataset.name || "Без названия";
+      document.getElementById("modal-description").textContent = el.dataset.description || "Описание недоступно.";
       document.getElementById("modal").classList.add("active");
     }
 
@@ -347,33 +211,34 @@
     }
 
     function goToCalendar() {
-  const activeSlide = document.querySelector(".swiper-slide-active");
-  const motoName = activeSlide.querySelector("h2").innerText;
+      const activeSlide = document.querySelector(".swiper-slide-active");
+      const motoName = activeSlide.querySelector("h2").innerText;
 
-  const depositRaw = activeSlide.querySelectorAll("p")[1].innerText
-    .replace("Залог: ", "")
-    .replace(" руб.", "")
-    .replace(/\s/g, "");
-  const deposit = Number(depositRaw);
+      const depositRaw = activeSlide.querySelectorAll("p")[1].innerText
+        .replace("Залог: ", "")
+        .replace(" руб.", "")
+        .replace(/\s/g, "");
+      const deposit = Number(depositRaw);
 
-  const priceRaw = activeSlide.querySelectorAll("p")[0].innerText
-    .replace("Стоимость: ", "")
-    .replace(" / сутки", "")
-    .replace(" руб.", "")
-    .replace(/\s/g, "");
-  const price_per_day = Number(priceRaw);
+      const priceRaw = activeSlide.querySelectorAll("p")[0].innerText
+        .replace("Стоимость: ", "")
+        .replace(" / сутки", "")
+        .replace(" руб.", "")
+        .replace(/\s/g, "");
+      const price_per_day = Number(priceRaw);
 
-  const params = new URLSearchParams(window.location.search);
-  const user_id = params.get("user_id");
-  const phone = params.get("phone");
+      const params = new URLSearchParams(window.location.search);
+      const user_id = params.get("user_id");
+      const phone = params.get("phone");
 
-  const url = `/app/calendar?user_id=${encodeURIComponent(user_id)}&phone=${encodeURIComponent(phone)}&moto=${encodeURIComponent(motoName)}&deposit=${deposit}&price_per_day=${price_per_day}`;
+      const url = `/app/calendar?user_id=${encodeURIComponent(user_id)}&phone=${encodeURIComponent(phone)}&moto=${encodeURIComponent(motoName)}&deposit=${deposit}&price_per_day=${price_per_day}`;
+      window.location.href = url;
+    }
 
-  window.location.href = url;
-}
-
-
-
+    document.addEventListener("DOMContentLoaded", function () {
+      const tg = window.Telegram?.WebApp;
+      if (tg) tg.expand();
+    });
   </script>
 </body>
 </html>

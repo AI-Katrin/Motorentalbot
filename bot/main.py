@@ -1,3 +1,5 @@
+from fastapi import FastAPI, Request
+from pydantic import BaseModel
 import asyncio
 from openai import AsyncOpenAI
 import os
