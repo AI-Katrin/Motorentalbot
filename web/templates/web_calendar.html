@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Календарь бронирований | Админ-панель</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; background: #f2f2f2; }
+    h1 { text-align: center; }
+    table { border-collapse: collapse; width: 100%; margin-top: 20px; background: white; }
+    th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
+    th { background-color: #eee; }
+
+    .free { background-color: #fff; }
+    .confirmed { background-color: #90ee90; }
+    .pending { background-color: #87cefa; }
+    .blocked { background-color: #f08080; }
+
+    .legend { margin-top: 20px; display: flex; gap: 20px; }
+    .legend div { display: flex; align-items: center; gap: 5px; }
+    .square { width: 15px; height: 15px; border: 1px solid #ccc; }
+
+    .square.confirmed { background-color: #90ee90; }
+    .square.pending { background-color: #87cefa; }
+    .square.blocked { background-color: #f08080; }
+    .square.free { background-color: #fff; }
+
+    .delete-btn, .add-btn {
+      background-color: #e63946;
+      color: white;
+      border: none;
+      padding: 5px 10px;
+      cursor: pointer;
+      font-size: 12px;
+      margin-top: 5px;
+      border-radius: 4px;
+    }
+
+    .add-btn {
+      background-color: #457b9d;
+    }
+
+    .modal {
+      display: none;
+      position: fixed;
+      top: 10%;
+      left: 50%;
+      transform: translateX(-50%);
+      background: white;
+      border: 1px solid #ccc;
+      padding: 20px;
+      z-index: 1000;
+      width: 300px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    }
+
+    .modal input, .modal select {
+      width: 100%;
+      margin-bottom: 10px;
+      padding: 6px;
+    }
+
+    .modal button {
+      margin-top: 10px;
+      width: 100%;
+      padding: 8px;
+      background: #2a9d8f;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+
+    .overlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0, 0, 0, 0.3);
+      z-index: 999;
+    }
+  </style>
+</head>
+<body>
+  <h1>Календарь бронирований</h1>
+
+  <div class="legend">
+    <div><div class="square confirmed"></div> Подтверждено</div>
+    <div><div class="square pending"></div> Новая заявка</div>
+    <div><div class="square blocked"></div> Недоступно</div>
+    <div><div class="square free"></div> Свободно</div>
+  </div>
+
+  <table id="calendar-table">
+    <thead>
+      <tr>
+        <th>Мотоцикл</th>
+        <!-- даты вставятся скриптом -->
+      </tr>
+    </thead>
+    <tbody id="calendar-body"></tbody>
+  </table>
+
+  <div class="overlay" id="overlay" onclick="closeModal()"></div>
+
+  <div class="modal" id="modal">
+    <h3>Создание бронирования</h3>
+    <input type="hidden" id="modal-moto">
+    <label>Дата начала:</label>
+    <input type="datetime-local" id="modal-start">
+    <label>Дата окончания:</label>
+    <input type="datetime-local" id="modal-end">
+    <label>Телефон:</label>
+    <input type="text" id="modal-phone">
+    <label>Telegram ID:</label>
+    <input type="text" id="modal-telegram">
+    <button onclick="submitBooking()">Сохранить</button>
+  </div>
+
+  <script>
+    const bookingsUrl = "/bookings";
+    const motosUrl = "/motos";
+    const createBookingUrl = "/app/confirm";
+    const deleteMotoUrl = "/api/motorcycles/";
+
+    const startDate = new Date();
+    const days = 14;
+
+    function formatDate(date) {
+      return date.toISOString().split("T")[0];
+    }
+
+    function getDatesArray(start, days) {
+      const result = [];
+      for (let i = 0; i < days; i++) {
+        const d = new Date(start);
+        d.setDate(d.getDate() + i);
+        result.push(d);
+      }
+      return result;
+    }
+
+    function openModal(motoName) {
+      document.getElementById("modal-moto").value = motoName;
+      document.getElementById("overlay").style.display = "block";
+      document.getElementById("modal").style.display = "block";
+    }
+
+    function closeModal() {
+      document.getElementById("overlay").style.display = "none";
+      document.getElementById("modal").style.display = "none";
+    }
+
+    async function submitBooking() {
+      const data = {
+        moto: document.getElementById("modal-moto").value,
+        start: document.getElementById("modal-start").value,
+        end: document.getElementById("modal-end").value,
+        phone: document.getElementById("modal-phone").value,
+        user_id: document.getElementById("modal-telegram").value,
+        source: "web_admin"
+      };
+
+      if (!data.start || !data.end) {
+        alert("Заполните даты!");
+        return;
+      }
+
+      await fetch(createBookingUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data)
+      });
+
+      closeModal();
+      alert("Бронирование создано!");
+      location.reload();
+    }
+
+    async function deleteMotorcycle(id) {
+      const hasBookings = await fetch(`${bookingsUrl}?moto_id=${id}`).then(r => r.json());
+      if (hasBookings.length > 0) {
+        alert("Нельзя удалить мотоцикл с активными бронированиями!");
+        return;
+      }
+
+      if (!confirm("Удалить этот мотоцикл?")) return;
+      const res = await fetch(`${deleteMotoUrl}${id}`, { method: "DELETE" });
+
+      if (res.ok) {
+        alert("Удалено");
+        location.reload();
+      } else {
+        const data = await res.json();
+        alert("Ошибка: " + (data.detail || "Не удалось удалить"));
+      }
+    }
+
+    async function createCalendar() {
+      const headerRow = document.querySelector("#calendar-table thead tr");
+      const body = document.getElementById("calendar-body");
+      const dates = getDatesArray(startDate, days);
+
+      dates.forEach(d => {
+        const th = document.createElement("th");
+        th.innerText = d.toLocaleDateString("ru-RU", { day: 'numeric', month: 'short' });
+        headerRow.appendChild(th);
+      });
+
+      const [motoRes, bookingRes] = await Promise.all([
+        fetch(motosUrl),
+        fetch(bookingsUrl)
+      ]);
+      const motos = await motoRes.json();
+      const bookings = await bookingRes.json();
+
+      motos.forEach(moto => {
+        const fullName = `${moto.brand} ${moto.model}`;
+        const tr = document.createElement("tr");
+
+        const tdName = document.createElement("td");
+        tdName.innerHTML = `<strong>${fullName}</strong><br>`;
+
+        const delBtn = document.createElement("button");
+        delBtn.innerText = "Удалить";
+        delBtn.className = "delete-btn";
+        delBtn.onclick = () => deleteMotorcycle(moto.id);
+
+        const addBtn = document.createElement("button");
+        addBtn.innerText = "Добавить бронь";
+        addBtn.className = "add-btn";
+        addBtn.onclick = () => openModal(fullName);
+
+        tdName.appendChild(addBtn);
+        tdName.appendChild(delBtn);
+        tr.appendChild(tdName);
+
+        const cells = dates.map(date => {
+          const td = document.createElement("td");
+          td.className = "free";
+          td.dataset.date = formatDate(date);
+          tr.appendChild(td);
+          return td;
+        });
+
+        const relatedBookings = bookings.filter(b => b.moto === fullName);
+
+        relatedBookings.forEach(b => {
+          const from = new Date(b.start_date);
+          const to = new Date(b.end_date);
+          dates.forEach((date, i) => {
+            if (date >= from && date <= to) {
+              cells[i].className = b.status;
+              cells[i].title =
+                `Заявка #${b.id}\n` +
+                `Статус: ${b.status}\n` +
+                `Период: ${b.start_date} – ${b.end_date}\n` +
+                `Телефон: ${b.phone || "-" }\n` +
+                `Telegram ID: ${b.user_id || "-" }\n` +
+                `Услуги: ${b.services || "-" }\n` +
+                `Адрес доставки: ${b.delivery_address || "-" }\n` +
+                `Экипировка: ${b.equipment_details || "-" }\n` +
+                `Пожелания: ${b.comments || "-" }\n` +
+                `Стоимость аренды: ${b.discounted_price?.toLocaleString("ru-RU")} руб.\n` +
+                `Доп. услуги: ${b.extra_services_price?.toLocaleString("ru-RU")} руб.\n` +
+                `Залог: ${b.deposit?.toLocaleString("ru-RU")} руб.\n` +
+                `Итого: ${b.total?.toLocaleString("ru-RU")} руб.`;
+            }
+          });
+        });
+
+        body.appendChild(tr);
+      });
+    }
+
+    createCalendar();
+  </script>
+</body>
+</html>
