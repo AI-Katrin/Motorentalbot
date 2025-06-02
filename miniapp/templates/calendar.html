@@ -89,8 +89,10 @@
   <p><strong>Мотоцикл:</strong> <span id="moto-display"></span></p>
   <label for="date-range">Период аренды:</label>
   <input type="text" id="date-range" name="date-range" placeholder="Выберите период" readonly>
-  <input type="hidden" id="user_id" name="user_id" value="">
-  <input type="hidden" id="phone" name="phone" value="">
+  <input type="hidden" id="user_id" name="user_id">
+  <input type="hidden" id="phone" name="phone">
+  <input type="hidden" id="deposit">
+  <input type="hidden" id="price_per_day">
   <div id="price-summary">
     <p>Стоимость (без скидки): <span id="base-price">—</span> руб.</p>
     <p>Стоимость аренды (с учетом скидки): <span id="discounted-price">—</span> руб.</p>
@@ -109,6 +111,7 @@
   let currentMoto = "";
   let unavailableRanges = [];
   let pricePerDay = 0;
+  let deposit = 0;
 
   function getQueryParams() {
     const params = {};
@@ -124,8 +127,7 @@
       const res = await fetch("/bookings/");
       const bookings = await res.json();
       bookings.forEach(b => {
-        const name = b.moto;
-        if (name === motoName) {
+        if (b.moto === motoName && b.status === "confirm") {
           const start = new Date(new Date(b.start_date).getTime() - 2 * 60 * 60 * 1000);
           const end = new Date(new Date(b.end_date).getTime() + 2 * 60 * 60 * 1000);
           unavailableRanges.push({ from: start, to: end });
@@ -136,26 +138,28 @@
     }
   }
 
-  async function loadMotoData() {
+  async function loadMotoData(motoName) {
     try {
-      const res = await fetch("/api/motorcycles");
+      const res = await fetch("/motos/");
       const motos = await res.json();
-      const found = motos.find(m => `${m.brand} ${m.model}` === currentMoto);
-      if (found) pricePerDay = found.price_per_day || 0;
-      calculatePrice();
+      const moto = motos.find(m => `${m.brand} ${m.model}`.trim() === motoName.trim());
+      if (moto) {
+        pricePerDay = moto.price_per_day;
+        deposit = moto.deposit;
+        document.getElementById("price_per_day").value = pricePerDay;
+        document.getElementById("deposit").value = deposit;
+        calculatePrice();
+      }
     } catch (e) {
-      console.error("Ошибка загрузки мотоциклов", e);
+      console.error("Ошибка загрузки данных мотоцикла", e);
     }
   }
 
   function calculatePrice() {
     const range = document.getElementById("date-range")._flatpickr.selectedDates;
     if (range.length !== 2 || !pricePerDay) return;
+
     const [start, end] = range;
-
-    const baseEl = document.getElementById("base-price");
-    const discountedEl = document.getElementById("discounted-price");
-
     const days = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
     const base = days * pricePerDay;
 
@@ -166,44 +170,42 @@
     else if (days >= 7) discount = 0.10;
 
     const discounted = Math.round(base * (1 - discount));
-
-    baseEl.textContent = base.toLocaleString("ru-RU");
-    discountedEl.textContent = discounted.toLocaleString("ru-RU");
+    document.getElementById("base-price").textContent = base.toLocaleString("ru-RU");
+    document.getElementById("discounted-price").textContent = discounted.toLocaleString("ru-RU");
   }
 
   function submitForm() {
     const range = document.getElementById("date-range")._flatpickr.selectedDates;
     if (range.length !== 2 || !currentMoto) {
-      alert("Пожалуйста, выберите доступный период аренды.");
+      alert("Пожалуйста, выберите период аренды.");
       return;
     }
+
     const [start, end] = range;
-    const data = {
+    const params = new URLSearchParams({
+      moto: currentMoto,
+      start: start.toISOString(),
+      end: end.toISOString(),
       user_id: document.getElementById("user_id").value,
       phone: document.getElementById("phone").value,
-      motorcycle: currentMoto,
-      start: start.toISOString(),
-      end: end.toISOString()
-    };
-    fetch("/app/confirm", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data),
-    })
-    .then(r => r.json())
-    .then(() => alert("Бронирование отправлено!"))
-    .catch(err => console.error(err));
+      deposit: document.getElementById("deposit").value,
+      price_per_day: document.getElementById("price_per_day").value,
+      base_price: document.getElementById("base-price").textContent.replace(/\D/g, ""),
+      discounted_price: document.getElementById("discounted-price").textContent.replace(/\D/g, "")
+    });
+
+    window.location.href = `/app/services?${params}`;
   }
 
-  window.addEventListener('DOMContentLoaded', async () => {
+  window.addEventListener("DOMContentLoaded", async () => {
     const params = getQueryParams();
-    currentMoto = params['moto'] || "";
-    document.getElementById('moto-display').textContent = currentMoto;
-    document.getElementById('user_id').value = params['user_id'] || "";
-    document.getElementById('phone').value = params['phone'] || "";
+    currentMoto = params["moto"] || "";
+    document.getElementById("moto-display").textContent = currentMoto;
+    document.getElementById("user_id").value = params["user_id"] || "";
+    document.getElementById("phone").value = params["phone"] || "";
 
     await loadBookings(currentMoto);
-    await loadMotoData();
+    await loadMotoData(currentMoto);
 
     flatpickr("#date-range", {
       mode: "range",
@@ -213,7 +215,7 @@
       enableTime: true,
       time_24hr: true,
       disable: unavailableRanges,
-      onChange: calculatePrice
+      onChange: calculatePrice,
     });
   });
 </script>
