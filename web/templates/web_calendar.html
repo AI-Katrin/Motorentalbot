@@ -308,16 +308,22 @@
           return td;
         });
 
-        const relatedBookings = bookings.filter(b => b.moto === fullName);
+        const relatedBookings = bookings.filter(b =>
+          `${b.moto_obj?.brand} ${b.moto_obj?.model}` === fullName
+        );
+
 
         relatedBookings.forEach(b => {
           const from = new Date(b.start_date);
           const to = new Date(b.end_date);
           dates.forEach((date, i) => {
             if (date >= from && date <= to) {
-              cells[i].className = b.status;
-              cells[i].title = `Заявка #${b.id}\nСтатус: ${b.status}`;
-              if (b.status === "confirmed") {
+              cells[i].className = b.status?.toLowerCase().trim();
+              cells[i].title = `Заявка #${b.id}
+                Период: ${b.start_date} – ${b.end_date}
+                Телефон: ${b.phone || "-"}
+                Статус: ${b.status}`;
+              if (b.status?.toLowerCase().trim() === "confirmed") {
                 cells[i].dataset.locked = "true";
               }
             }
