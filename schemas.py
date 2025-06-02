@@ -18,19 +18,20 @@ class MotoOut(MotoCreate):
 
 class BookingCreate(BaseModel):
     moto: str
-    user_id: Optional[str]
-    phone: Optional[str]
+    user_id: Optional[str] = ""
+    phone: Optional[str] = ""
     start: str
     end: str
-    services: Optional[str]
-    equipment_details: Optional[str]
-    delivery_address: Optional[str]
-    comments: Optional[str]
-    base_price: Optional[int]
-    discounted_price: Optional[int]
-    extra_services_price: Optional[int]
-    deposit: Optional[int]
-    total: Optional[int]
+    services: Optional[str] = ""
+    equipment_details: Optional[str] = ""
+    delivery_address: Optional[str] = ""
+    comments: Optional[str] = ""
+    base_price: int = 0
+    discounted_price: int = 0
+    extra_services_price: int = 0
+    deposit: int = 0
+    total: int = 0
+
 
 class BookingOut(BaseModel):
     id: int
