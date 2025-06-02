@@ -12,8 +12,8 @@ from datetime import datetime
 from sqlalchemy.orm import Session
 import math
 import shutil
-from Motorentalbot.config import BOT_TOKEN, EMPLOYEE_CHAT_ID
-from Motorentalbot.schemas import BookingCreate
+from config import BOT_TOKEN, EMPLOYEE_CHAT_ID
+from schemas import BookingCreate
 from models import Booking, Motorcycle
 from database import get_db
 from routers import bookings, motos
