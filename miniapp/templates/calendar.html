@@ -46,6 +46,13 @@
       border: 1px solid #ccc;
       border-radius: 5px;
     }
+    #moto-image {
+      max-width: 100%;
+      height: auto;
+      border-radius: 8px;
+      margin: 15px 0;
+      display: none;
+    }
     #price-summary {
       margin-top: 15px;
       font-size: 14px;
@@ -87,6 +94,7 @@
 <div class="content">
   <h1>Оформление аренды</h1>
   <p><strong>Мотоцикл:</strong> <span id="moto-display"></span></p>
+  <img id="moto-image" src="" alt="Фото мотоцикла">
   <label for="date-range">Период аренды:</label>
   <input type="text" id="date-range" name="date-range" placeholder="Выберите период" readonly>
   <input type="hidden" id="user_id" name="user_id">
@@ -112,6 +120,7 @@
   let unavailableRanges = [];
   let pricePerDay = 0;
   let deposit = 0;
+  let calendar; // сохраняем экземпляр flatpickr
 
   function getQueryParams() {
     const params = {};
@@ -122,12 +131,12 @@
     return params;
   }
 
-  async function loadBookings(motoName) {
+  async function loadBookings(motoId) {
     try {
       const res = await fetch("/bookings/");
       const bookings = await res.json();
       bookings.forEach(b => {
-        if (b.moto === motoName && b.status === "confirm") {
+        if (b.moto_id === motoId && b.status === "confirmed") {
           const start = new Date(new Date(b.start_date).getTime() - 2 * 60 * 60 * 1000);
           const end = new Date(new Date(b.end_date).getTime() + 2 * 60 * 60 * 1000);
           unavailableRanges.push({ from: start, to: end });
@@ -148,7 +157,17 @@
         deposit = moto.deposit;
         document.getElementById("price_per_day").value = pricePerDay;
         document.getElementById("deposit").value = deposit;
-        calculatePrice();
+
+        // Отображение фото
+        if (moto.image_url) {
+          const img = document.getElementById("moto-image");
+          img.src = moto.image_url.startsWith("http") ? moto.image_url : `${location.origin}${moto.image_url}`;
+          img.style.display = "block";
+        }
+
+        // Загружаем и применяем бронь
+        await loadBookings(moto.id);
+        calendar.set("disable", unavailableRanges);
       }
     } catch (e) {
       console.error("Ошибка загрузки данных мотоцикла", e);
@@ -156,8 +175,8 @@
   }
 
   function calculatePrice() {
-    const range = document.getElementById("date-range")._flatpickr.selectedDates;
-    if (range.length !== 2 || !pricePerDay) return;
+    const range = document.getElementById("date-range")._flatpickr?.selectedDates;
+    if (!range || range.length !== 2 || !pricePerDay) return;
 
     const [start, end] = range;
     const days = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
@@ -175,8 +194,8 @@
   }
 
   function submitForm() {
-    const range = document.getElementById("date-range")._flatpickr.selectedDates;
-    if (range.length !== 2 || !currentMoto) {
+    const range = document.getElementById("date-range")._flatpickr?.selectedDates;
+    if (!range || range.length !== 2 || !currentMoto) {
       alert("Пожалуйста, выберите период аренды.");
       return;
     }
@@ -204,19 +223,20 @@
     document.getElementById("user_id").value = params["user_id"] || "";
     document.getElementById("phone").value = params["phone"] || "";
 
-    await loadBookings(currentMoto);
-    await loadMotoData(currentMoto);
-
-    flatpickr("#date-range", {
+    // Сначала инициализируем календарь
+    calendar = flatpickr("#date-range", {
       mode: "range",
       locale: "ru",
       minDate: "today",
       dateFormat: "d.m.Y H:i",
       enableTime: true,
       time_24hr: true,
-      disable: unavailableRanges,
+      disable: [],
       onChange: calculatePrice,
     });
+
+    // Затем загружаем данные мотоцикла и блокируем даты
+    await loadMotoData(currentMoto);
   });
 </script>
 </body>
