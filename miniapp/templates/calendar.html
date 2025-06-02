@@ -79,11 +79,6 @@
       background-color: #e63946;
       color: white;
     }
-    .flatpickr-day.disabled {
-      background: #e6e6e6 !important;
-      color: #999 !important;
-      cursor: not-allowed;
-    }
   </style>
 </head>
 <body>
@@ -95,10 +90,12 @@
   <h1>Оформление аренды</h1>
   <p><strong>Мотоцикл:</strong> <span id="moto-display"></span></p>
   <img id="moto-image" src="" alt="Фото мотоцикла">
-  <label for="date-range">Период аренды:</label>
-  <input type="text" id="date-range" name="date-range" placeholder="Выберите период" readonly>
-  <input type="hidden" id="user_id" name="user_id">
-  <input type="hidden" id="phone" name="phone">
+  <label for="start-date">Дата и время начала:</label>
+  <input type="text" id="start-date" placeholder="Начало аренды" readonly>
+  <label for="end-date">Дата и время окончания:</label>
+  <input type="text" id="end-date" placeholder="Окончание аренды" readonly>
+  <input type="hidden" id="user_id">
+  <input type="hidden" id="phone">
   <input type="hidden" id="deposit">
   <input type="hidden" id="price_per_day">
   <div id="price-summary">
@@ -111,7 +108,7 @@
   </div>
 </div>
 <footer>
-  <p>Телефон: +7 (499) 460-47-08 | Email: sales@lomovtravel.com | Адрес: ул. Автозаводская, д.8</p>
+  <p>Телефон: +7 (499) 460-47-08 | Email: sales@lomovtravel.com</p>
 </footer>
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/ru.js"></script>
@@ -120,90 +117,66 @@
   let blockedIntervals = [];
   let pricePerDay = 0;
   let deposit = 0;
-  let calendar;
-
-  function getQueryParams() {
-    const params = {};
-    window.location.search.substring(1).split("&").forEach(pair => {
-      const [key, value] = pair.split("=");
-      params[decodeURIComponent(key)] = decodeURIComponent(value || "");
-    });
-    return params;
-  }
+  let startPicker, endPicker;
 
   async function loadBookings(motoId) {
     blockedIntervals = [];
-    try {
-      const res = await fetch("/bookings/");
-      const bookings = await res.json();
-      bookings.forEach(b => {
-        if (b.moto_id === motoId && b.status === "confirmed") {
-          const start = new Date(new Date(b.start_date).getTime() - 2 * 60 * 60 * 1000);
-          const end = new Date(new Date(b.end_date).getTime() + 2 * 60 * 60 * 1000);
-          blockedIntervals.push({ from: start, to: end });
-        }
-      });
-    } catch (e) {
-      console.error("Ошибка загрузки броней", e);
-    }
+    const res = await fetch("/bookings/");
+    const bookings = await res.json();
+    bookings.forEach(b => {
+      if (b.moto_id === motoId && b.status === "confirmed") {
+        const start = new Date(new Date(b.start_date).getTime() - 2 * 60 * 60 * 1000);
+        const end = new Date(new Date(b.end_date).getTime() + 2 * 60 * 60 * 1000);
+        blockedIntervals.push({ from: start, to: end });
+      }
+    });
   }
 
   async function loadMotoData(motoName) {
-    try {
-      const res = await fetch("/motos/");
-      const motos = await res.json();
-      const moto = motos.find(m => `${m.brand} ${m.model}`.trim() === motoName.trim());
-      if (moto) {
-        pricePerDay = moto.price_per_day;
-        deposit = moto.deposit;
-        document.getElementById("price_per_day").value = pricePerDay;
-        document.getElementById("deposit").value = deposit;
-
-        if (moto.image_url) {
-          const img = document.getElementById("moto-image");
-          img.src = moto.image_url.startsWith("http") ? moto.image_url : `${location.origin}${moto.image_url}`;
-          img.style.display = "block";
-        }
-
-        await loadBookings(moto.id);
-        calendar.set("disable", [
-          function(date) {
-            return blockedIntervals.some(interval => date >= interval.from && date <= interval.to);
-          }
-        ]);
+    const res = await fetch("/motos/");
+    const motos = await res.json();
+    const moto = motos.find(m => `${m.brand} ${m.model}`.trim() === motoName.trim());
+    if (moto) {
+      pricePerDay = moto.price_per_day;
+      deposit = moto.deposit;
+      document.getElementById("price_per_day").value = pricePerDay;
+      document.getElementById("deposit").value = deposit;
+      if (moto.image_url) {
+        const img = document.getElementById("moto-image");
+        img.src = moto.image_url.startsWith("http") ? moto.image_url : `${location.origin}${moto.image_url}`;
+        img.style.display = "block";
       }
-    } catch (e) {
-      console.error("Ошибка загрузки данных мотоцикла", e);
+      await loadBookings(moto.id);
     }
   }
 
-  function calculatePrice() {
-    const range = document.getElementById("date-range")._flatpickr?.selectedDates;
-    if (!range || range.length !== 2 || !pricePerDay) return;
+  function isBlocked(date) {
+    return blockedIntervals.some(interval => date >= interval.from && date <= interval.to);
+  }
 
-    const [start, end] = range;
+  function calculatePrice() {
+    const start = startPicker.selectedDates[0];
+    const end = endPicker.selectedDates[0];
+    if (!start || !end || end <= start || !pricePerDay) return;
     const days = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
     const base = days * pricePerDay;
-
     let discount = 0;
     if (days >= 30) discount = 0.25;
     else if (days >= 20) discount = 0.20;
     else if (days >= 11) discount = 0.15;
     else if (days >= 7) discount = 0.10;
-
     const discounted = Math.round(base * (1 - discount));
     document.getElementById("base-price").textContent = base.toLocaleString("ru-RU");
     document.getElementById("discounted-price").textContent = discounted.toLocaleString("ru-RU");
   }
 
   function submitForm() {
-    const range = document.getElementById("date-range")._flatpickr?.selectedDates;
-    if (!range || range.length !== 2 || !currentMoto) {
-      alert("Пожалуйста, выберите период аренды.");
+    const start = startPicker.selectedDates[0];
+    const end = endPicker.selectedDates[0];
+    if (!start || !end || end <= start) {
+      alert("Пожалуйста, выберите корректный период аренды.");
       return;
     }
-
-    const [start, end] = range;
     const params = new URLSearchParams({
       moto: currentMoto,
       start: start.toISOString(),
@@ -215,29 +188,41 @@
       base_price: document.getElementById("base-price").textContent.replace(/\D/g, ""),
       discounted_price: document.getElementById("discounted-price").textContent.replace(/\D/g, "")
     });
-
     window.location.href = `/app/services?${params}`;
   }
 
   window.addEventListener("DOMContentLoaded", async () => {
-    const params = getQueryParams();
-    currentMoto = params["moto"] || "";
+    const params = new URLSearchParams(window.location.search);
+    currentMoto = params.get("moto") || "";
     document.getElementById("moto-display").textContent = currentMoto;
-    document.getElementById("user_id").value = params["user_id"] || "";
-    document.getElementById("phone").value = params["phone"] || "";
-
-    calendar = flatpickr("#date-range", {
-      mode: "range",
-      locale: "ru",
-      minDate: "today",
-      dateFormat: "d.m.Y H:i",
-      enableTime: true,
-      time_24hr: true,
-      disable: [], // будет обновлено после загрузки
-      onChange: calculatePrice,
-    });
+    document.getElementById("user_id").value = params.get("user_id") || "";
+    document.getElementById("phone").value = params.get("phone") || "";
 
     await loadMotoData(currentMoto);
+
+    startPicker = flatpickr("#start-date", {
+      enableTime: true,
+      time_24hr: true,
+      minDate: "today",
+      dateFormat: "d.m.Y H:i",
+      locale: "ru",
+      disable: [isBlocked],
+      onChange: function(selectedDates) {
+        if (!selectedDates[0]) return;
+        const minEndDate = new Date(selectedDates[0].getTime() + 1 * 60 * 1000);
+        endPicker.set("minDate", minEndDate);
+        endPicker.set("disable", [isBlocked]);
+      }
+    });
+
+    endPicker = flatpickr("#end-date", {
+      enableTime: true,
+      time_24hr: true,
+      dateFormat: "d.m.Y H:i",
+      locale: "ru",
+      disable: [isBlocked],
+      onChange: calculatePrice
+    });
   });
 </script>
 </body>
