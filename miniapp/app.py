@@ -135,8 +135,15 @@ async def summary_page(request: Request,
     })
 
 @app.get("/admin/calendar", response_class=HTMLResponse)
-async def show_admin_calendar(request: Request):
-    return admin_templates.TemplateResponse("web_calendar.html", {"request": request})
+async def show_admin_calendar(request: Request, db: Session = Depends(get_db)):
+    motos = db.query(Motorcycle).all()
+    bookings = db.query(Booking).all()
+
+    return admin_templates.TemplateResponse("web_calendar.html", {
+        "request": request,
+        "motos": motos,
+        "bookings": bookings
+    })
 
 @app.get("/admin/add-moto", response_class=HTMLResponse)
 async def admin_add_moto_page(request: Request):
