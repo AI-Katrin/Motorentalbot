@@ -28,9 +28,8 @@ def update_booking(booking_id: int, update: BookingUpdate, db: Session = Depends
 
 @router.post("/confirm")
 def create_booking(data: BookingCreate, db: Session = Depends(get_db)):
-    # Поиск мотоцикла по ID
+    # Поиск по moto_id
     moto = db.query(Motorcycle).filter(Motorcycle.id == data.moto_id).first()
-
     if not moto:
         raise HTTPException(status_code=404, detail="Мотоцикл не найден")
 
@@ -42,6 +41,7 @@ def create_booking(data: BookingCreate, db: Session = Depends(get_db)):
 
     booking = Booking(
         moto_id=moto.id,
+        moto=data.moto,  # ← если ты хранишь название тоже
         user_id=data.user_id,
         phone=data.phone,
         start_date=start_date,
