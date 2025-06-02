@@ -156,6 +156,7 @@ async def admin_requests(request: Request):
 
 @app.post("/admin/motorcycles")
 async def add_motorcycle(
+    request: Request,
     brand: str = Form(...),
     model: str = Form(...),
     description: str = Form(...),
@@ -177,13 +178,16 @@ async def add_motorcycle(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Ошибка при сохранении изображения: {e}")
 
+    # ✅ формируем полный URL
+    image_url = f"{request.base_url}static/images/{filename}"
+
     moto = Motorcycle(
         brand=brand,
         model=model,
         description=description,
         price_per_day=price_per_day,
         deposit=deposit,
-        image_url=f"/static/images/{filename}"
+        image_url=image_url
     )
     db.add(moto)
     db.commit()
@@ -199,6 +203,7 @@ async def add_motorcycle(
         "deposit": moto.deposit,
         "image_url": moto.image_url
     })
+
 
 @app.delete("/api/motorcycles/{moto_id}")
 async def delete_motorcycle(moto_id: int, db: Session = Depends(get_db)):
