@@ -12,11 +12,13 @@ from datetime import datetime
 from sqlalchemy.orm import Session
 import math
 import shutil
+from uuid import uuid4
+
 from config import BOT_TOKEN, EMPLOYEE_CHAT_ID
 from schemas import BookingCreate
 from models import Booking, Motorcycle
 from database import get_db
-from routers import bookings, motos
+from routers import bookings
 
 app = FastAPI()
 router = APIRouter()
@@ -95,7 +97,6 @@ async def confirm_rental(rental: RentalRequest, db: Session = Depends(get_db)):
     )
 
     await bot.send_message(EMPLOYEE_CHAT_ID, message)
-    print(message)
     return JSONResponse(status_code=200, content={"message": "Заказ успешно оформлен"})
 
 @router.get("/services", response_class=HTMLResponse)
@@ -111,20 +112,10 @@ async def services_page(request: Request, moto: str = "", start: str = "", end: 
 
 @router.get("/summary", response_class=HTMLResponse)
 async def summary_page(request: Request,
-                       moto: str = "",
-                       start: str = "",
-                       end: str = "",
-                       user_id: str = "",
-                       phone: str = "",
-                       services: str = "",
-                       equipment_details: str = "",
-                       delivery_address: str = "",
-                       comments: str = "",
-                       deposit: str = "",
-                       base_price: str = "",
-                       price_per_day: str = "",
-                       discounted_price: str = "",
-                       extra_services_price: str = ""):
+                       moto: str = "", start: str = "", end: str = "", user_id: str = "", phone: str = "",
+                       services: str = "", equipment_details: str = "", delivery_address: str = "", comments: str = "",
+                       deposit: str = "", base_price: str = "", price_per_day: str = "",
+                       discounted_price: str = "", extra_services_price: str = ""):
     return templates.TemplateResponse("summary.html", {
         "request": request,
         "moto": moto,
@@ -165,10 +156,22 @@ async def add_motorcycle(
     image: UploadFile = File(...),
     db: Session = Depends(get_db)
 ):
-    file_path = f"miniapp/static/uploads/{image.filename}"
-    with open(file_path, "wb") as f:
-        shutil.copyfileobj(image.file, f)
+    # Создаём директорию для изображений, если её нет
+    image_dir = "miniapp/static/images"
+    os.makedirs(image_dir, exist_ok=True)
 
+    # Сохраняем файл с уникальным именем
+    ext = image.filename.split('.')[-1]
+    filename = f"{uuid4().hex}.{ext}"
+    file_path = os.path.join(image_dir, filename)
+
+    try:
+        with open(file_path, "wb") as f:
+            shutil.copyfileobj(image.file, f)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Ошибка при сохранении изображения: {e}")
+
+    # Сохраняем мотоцикл в БД
     moto = Motorcycle(
         brand=brand,
         model=model,
@@ -176,7 +179,7 @@ async def add_motorcycle(
         description=description,
         price_per_day=price_per_day,
         deposit=deposit,
-        image_url=f"/static/uploads/{image.filename}"
+        image_url=f"/static/images/{filename}"
     )
     db.add(moto)
     db.commit()
@@ -217,7 +220,6 @@ async def create_amo_lead(data: BookingCreate, db: Session = Depends(get_db)):
     db.refresh(booking)
     return {"message": "Заявка сохранена", "id": booking.id}
 
-
+# Подключаем только нужные роутеры
 app.include_router(bookings.router)
-app.include_router(motos.router)
 app.include_router(router, prefix="/app")
