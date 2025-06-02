@@ -72,8 +72,6 @@
       background-color: #e63946;
       color: white;
     }
-
-    /* Стиль для недоступных дат */
     .flatpickr-day.disabled {
       background: #e6e6e6 !important;
       color: #999 !important;
@@ -82,46 +80,35 @@
   </style>
 </head>
 <body>
-
 <header>
   <h2>Аренда мотоциклов / Мотоэвакуация</h2>
   <p><strong>+7 (499) 460-47-08</strong><br>sales@lomovtravel.com</p>
 </header>
-
 <div class="content">
   <h1>Оформление аренды</h1>
   <p><strong>Мотоцикл:</strong> <span id="moto-display"></span></p>
-
   <label for="date-range">Период аренды:</label>
   <input type="text" id="date-range" name="date-range" placeholder="Выберите период" readonly>
-
   <input type="hidden" id="user_id" name="user_id" value="">
   <input type="hidden" id="phone" name="phone" value="">
-
   <div id="price-summary">
     <p>Стоимость (без скидки): <span id="base-price">—</span> руб.</p>
     <p>Стоимость аренды (с учетом скидки): <span id="discounted-price">—</span> руб.</p>
   </div>
-
   <div class="buttons">
     <button class="button back" onclick="history.back()">Назад</button>
     <button class="button continue" onclick="submitForm()">Продолжить</button>
   </div>
 </div>
-
 <footer>
-  <p>
-    Телефон: +7 (499) 460-47-08 | Email: sales@lomovtravel.com | Адрес: ул. Автозаводская, д.8
-  </p>
+  <p>Телефон: +7 (499) 460-47-08 | Email: sales@lomovtravel.com | Адрес: ул. Автозаводская, д.8</p>
 </footer>
-
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/ru.js"></script>
 <script>
-  let prices = {};
-  let deposits = {};
   let currentMoto = "";
   let unavailableRanges = [];
+  let pricePerDay = 0;
 
   function getQueryParams() {
     const params = {};
@@ -134,7 +121,7 @@
 
   async function loadBookings(motoName) {
     try {
-      const res = await fetch("https://motorentalbot.com/bookings");
+      const res = await fetch("/bookings/");
       const bookings = await res.json();
       bookings.forEach(b => {
         const name = b.moto;
@@ -151,13 +138,10 @@
 
   async function loadMotoData() {
     try {
-      const res = await fetch("https://motorentalbot.com/api/motorcycles");
+      const res = await fetch("/api/motorcycles");
       const motos = await res.json();
-      motos.forEach(m => {
-        const name = `${m.brand} ${m.model}`;
-        prices[name] = m.price_per_day;
-        deposits[name] = m.deposit;
-      });
+      const found = motos.find(m => `${m.brand} ${m.model}` === currentMoto);
+      if (found) pricePerDay = found.price_per_day || 0;
       calculatePrice();
     } catch (e) {
       console.error("Ошибка загрузки мотоциклов", e);
@@ -166,14 +150,13 @@
 
   function calculatePrice() {
     const range = document.getElementById("date-range")._flatpickr.selectedDates;
-    if (range.length !== 2 || !currentMoto) return;
+    if (range.length !== 2 || !pricePerDay) return;
     const [start, end] = range;
 
     const baseEl = document.getElementById("base-price");
     const discountedEl = document.getElementById("discounted-price");
 
     const days = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
-    const pricePerDay = prices[currentMoto] || 0;
     const base = days * pricePerDay;
 
     let discount = 0;
@@ -195,7 +178,6 @@
       return;
     }
     const [start, end] = range;
-
     const data = {
       user_id: document.getElementById("user_id").value,
       phone: document.getElementById("phone").value,
@@ -203,8 +185,7 @@
       start: start.toISOString(),
       end: end.toISOString()
     };
-
-    fetch("https://motorentalbot.com/app/confirm", {
+    fetch("/app/confirm", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
@@ -216,10 +197,8 @@
 
   window.addEventListener('DOMContentLoaded', async () => {
     const params = getQueryParams();
-    if (params['moto']) {
-      currentMoto = params['moto'];
-      document.getElementById('moto-display').textContent = currentMoto;
-    }
+    currentMoto = params['moto'] || "";
+    document.getElementById('moto-display').textContent = currentMoto;
     document.getElementById('user_id').value = params['user_id'] || "";
     document.getElementById('phone').value = params['phone'] || "";
 
@@ -238,6 +217,5 @@
     });
   });
 </script>
-
 </body>
 </html>
