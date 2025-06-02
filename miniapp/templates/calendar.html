@@ -90,12 +90,10 @@
   <h1>Оформление аренды</h1>
   <p><strong>Мотоцикл:</strong> <span id="moto-display"></span></p>
   <img id="moto-image" src="" alt="Фото мотоцикла">
-  <label for="start-date">Дата и время начала:</label>
-  <input type="text" id="start-date" placeholder="Начало аренды" readonly>
-  <label for="end-date">Дата и время окончания:</label>
-  <input type="text" id="end-date" placeholder="Окончание аренды" readonly>
-  <input type="hidden" id="user_id">
-  <input type="hidden" id="phone">
+  <label for="date-range">Период аренды:</label>
+  <input type="text" id="date-range" name="date-range" placeholder="Выберите период" readonly>
+  <input type="hidden" id="user_id" name="user_id">
+  <input type="hidden" id="phone" name="phone">
   <input type="hidden" id="deposit">
   <input type="hidden" id="price_per_day">
   <div id="price-summary">
@@ -108,7 +106,7 @@
   </div>
 </div>
 <footer>
-  <p>Телефон: +7 (499) 460-47-08 | Email: sales@lomovtravel.com</p>
+  <p>Телефон: +7 (499) 460-47-08 | Email: sales@lomovtravel.com | Адрес: ул. Автозаводская, д.8</p>
 </footer>
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/ru.js"></script>
@@ -117,7 +115,7 @@
   let blockedIntervals = [];
   let pricePerDay = 0;
   let deposit = 0;
-  let startPicker, endPicker;
+  let calendar;
 
   async function loadBookings(motoId) {
     blockedIntervals = [];
@@ -132,8 +130,33 @@
     });
   }
 
-  function isInBlockedInterval(date) {
-    return blockedIntervals.some(interval => date >= interval.from && date <= interval.to);
+  function checkOverlap(start, end) {
+    return blockedIntervals.some(interval => !(end <= interval.from || start >= interval.to));
+  }
+
+  function calculatePrice() {
+    const range = document.getElementById("date-range")._flatpickr?.selectedDates;
+    if (!range || range.length !== 2 || !pricePerDay) return;
+
+    const [start, end] = range;
+    if (checkOverlap(start, end)) {
+      alert("Выбранный период пересекается с уже подтвержденной арендой. Пожалуйста, выберите другой период.");
+      calendar.clear();
+      return;
+    }
+
+    const days = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
+    const base = days * pricePerDay;
+
+    let discount = 0;
+    if (days >= 30) discount = 0.25;
+    else if (days >= 20) discount = 0.20;
+    else if (days >= 11) discount = 0.15;
+    else if (days >= 7) discount = 0.10;
+
+    const discounted = Math.round(base * (1 - discount));
+    document.getElementById("base-price").textContent = base.toLocaleString("ru-RU");
+    document.getElementById("discounted-price").textContent = discounted.toLocaleString("ru-RU");
   }
 
   async function loadMotoData(motoName) {
@@ -154,29 +177,13 @@
     }
   }
 
-  function calculatePrice() {
-    const start = startPicker.selectedDates[0];
-    const end = endPicker.selectedDates[0];
-    if (!start || !end || end <= start || !pricePerDay) return;
-    const days = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
-    const base = days * pricePerDay;
-    let discount = 0;
-    if (days >= 30) discount = 0.25;
-    else if (days >= 20) discount = 0.20;
-    else if (days >= 11) discount = 0.15;
-    else if (days >= 7) discount = 0.10;
-    const discounted = Math.round(base * (1 - discount));
-    document.getElementById("base-price").textContent = base.toLocaleString("ru-RU");
-    document.getElementById("discounted-price").textContent = discounted.toLocaleString("ru-RU");
-  }
-
   function submitForm() {
-    const start = startPicker.selectedDates[0];
-    const end = endPicker.selectedDates[0];
-    if (!start || !end || end <= start) {
-      alert("Пожалуйста, выберите корректный период аренды.");
+    const range = document.getElementById("date-range")._flatpickr?.selectedDates;
+    if (!range || range.length !== 2 || !currentMoto) {
+      alert("Пожалуйста, выберите период аренды.");
       return;
     }
+    const [start, end] = range;
     const params = new URLSearchParams({
       moto: currentMoto,
       start: start.toISOString(),
@@ -200,40 +207,14 @@
 
     await loadMotoData(currentMoto);
 
-    startPicker = flatpickr("#start-date", {
-      enableTime: true,
-      time_24hr: true,
+    calendar = flatpickr("#date-range", {
+      mode: "range",
+      locale: "ru",
       minDate: "today",
       dateFormat: "d.m.Y H:i",
-      locale: "ru",
-      onChange: function(selectedDates) {
-        const start = selectedDates[0];
-        if (!start) return;
-        if (isInBlockedInterval(start)) {
-          alert("Выбранное время начала пересекается с другой бронью. Пожалуйста, выберите другое время.");
-          startPicker.clear();
-          return;
-        }
-        const minEndDate = new Date(start.getTime() + 1 * 60 * 1000);
-        endPicker.set("minDate", minEndDate);
-      }
-    });
-
-    endPicker = flatpickr("#end-date", {
       enableTime: true,
       time_24hr: true,
-      dateFormat: "d.m.Y H:i",
-      locale: "ru",
-      onChange: function(selectedDates) {
-        const end = selectedDates[0];
-        if (!end) return;
-        if (isInBlockedInterval(end)) {
-          alert("Выбранное время окончания пересекается с другой бронью. Пожалуйста, выберите другое время.");
-          endPicker.clear();
-          return;
-        }
-        calculatePrice();
-      }
+      onChange: calculatePrice
     });
   });
 </script>
