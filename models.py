@@ -1,4 +1,5 @@
-from sqlalchemy import Column, Integer, String, Date, Enum
+from sqlalchemy import Column, Integer, String, Date, Enum, ForeignKey
+from sqlalchemy.orm import relationship
 from database import Base
 import enum
 
@@ -12,6 +13,8 @@ class Booking(Base):
     __tablename__ = "bookings"
 
     id = Column(Integer, primary_key=True, index=True)
+    moto_id = Column(Integer, ForeignKey("motos.id"))
+    moto_obj = relationship("Motorcycle", backref="bookings")
     moto = Column(String)
     user_id = Column(String)
     phone = Column(String)
@@ -40,4 +43,3 @@ class Motorcycle(Base):
     price_per_day = Column(Integer, nullable=False)
     deposit = Column(Integer, nullable=False)
     image_url = Column(String, nullable=True)
-
