@@ -117,10 +117,10 @@
 <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/ru.js"></script>
 <script>
   let currentMoto = "";
-  let unavailableRanges = [];
+  let blockedIntervals = [];
   let pricePerDay = 0;
   let deposit = 0;
-  let calendar; // сохраняем экземпляр flatpickr
+  let calendar;
 
   function getQueryParams() {
     const params = {};
@@ -132,6 +132,7 @@
   }
 
   async function loadBookings(motoId) {
+    blockedIntervals = [];
     try {
       const res = await fetch("/bookings/");
       const bookings = await res.json();
@@ -139,7 +140,7 @@
         if (b.moto_id === motoId && b.status === "confirmed") {
           const start = new Date(new Date(b.start_date).getTime() - 2 * 60 * 60 * 1000);
           const end = new Date(new Date(b.end_date).getTime() + 2 * 60 * 60 * 1000);
-          unavailableRanges.push({ from: start, to: end });
+          blockedIntervals.push({ from: start, to: end });
         }
       });
     } catch (e) {
@@ -158,16 +159,18 @@
         document.getElementById("price_per_day").value = pricePerDay;
         document.getElementById("deposit").value = deposit;
 
-        // Отображение фото
         if (moto.image_url) {
           const img = document.getElementById("moto-image");
           img.src = moto.image_url.startsWith("http") ? moto.image_url : `${location.origin}${moto.image_url}`;
           img.style.display = "block";
         }
 
-        // Загружаем и применяем бронь
         await loadBookings(moto.id);
-        calendar.set("disable", unavailableRanges);
+        calendar.set("disable", [
+          function(date) {
+            return blockedIntervals.some(interval => date >= interval.from && date <= interval.to);
+          }
+        ]);
       }
     } catch (e) {
       console.error("Ошибка загрузки данных мотоцикла", e);
@@ -223,7 +226,6 @@
     document.getElementById("user_id").value = params["user_id"] || "";
     document.getElementById("phone").value = params["phone"] || "";
 
-    // Сначала инициализируем календарь
     calendar = flatpickr("#date-range", {
       mode: "range",
       locale: "ru",
@@ -231,11 +233,10 @@
       dateFormat: "d.m.Y H:i",
       enableTime: true,
       time_24hr: true,
-      disable: [],
+      disable: [], // будет обновлено после загрузки
       onChange: calculatePrice,
     });
 
-    // Затем загружаем данные мотоцикла и блокируем даты
     await loadMotoData(currentMoto);
   });
 </script>
