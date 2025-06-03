@@ -2,6 +2,8 @@ import sys
 import os
 import math
 import shutil
+import traceback
+import logging
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
@@ -20,6 +22,10 @@ from models import Booking, Motorcycle
 from database import get_db
 from routers import bookings
 from routers import motos
+from fastapi.exceptions import RequestValidationError
+from starlette.status import HTTP_422_UNPROCESSABLE_ENTITY
+
+logger = logging.getLogger("uvicorn.error")
 
 app = FastAPI()
 router = APIRouter()
@@ -57,63 +63,6 @@ async def calendar_page(request: Request, moto: str = "", user_id: str = "", pho
         "price_per_day": price
     })
 
-@router.post("/confirm")
-async def confirm_rental(rental: BookingCreate, db: Session = Depends(get_db)):
-    moto = db.query(Motorcycle).filter_by(model=rental.moto).first()
-    if not moto:
-        raise HTTPException(status_code=400, detail="Unknown motorcycle")
-
-    try:
-        start_dt = datetime.fromisoformat(rental.start)
-        end_dt = datetime.fromisoformat(rental.end)
-    except ValueError:
-        raise HTTPException(status_code=400, detail="Invalid date format")
-
-    if end_dt <= start_dt:
-        raise HTTPException(status_code=400, detail="End date must be after start date")
-
-    days_count = (end_dt - start_dt).days + 1
-    price_per_day = moto.price_per_day
-
-    new_booking = Booking(
-        moto=rental.moto,
-        user_id=rental.user_id,
-        phone=rental.phone,
-        start_date=rental.start,
-        end_date=rental.end,
-        services=rental.services,
-        equipment_details=rental.equipment_details,
-        delivery_address=rental.delivery_address,
-        comments=rental.comments,
-        base_price=rental.base_price,
-        discounted_price=rental.discounted_price,
-        extra_services_price=rental.extra_services_price,
-        deposit=rental.deposit,
-        total=rental.total,
-        price_per_day=rental.price_per_day,
-        days_count=rental.days_count,
-        status="pending",
-        source="telegram_miniapp"
-    )
-    db.add(new_booking)
-    db.commit()
-    db.refresh(new_booking)
-
-    message = (
-        f"Новая заявка на аренду мотоцикла:\n\n"
-        f"Мотоцикл: {rental.moto}\n"
-        f"Период: {start_dt.strftime('%d.%m.%Y')} – {end_dt.strftime('%d.%m.%Y')}\n"
-        f"Телефон: {rental.phone}\n"
-        f"Telegram ID: {rental.user_id}\n"
-        f"Цена без скидки: {rental.base_price:,} руб.\n"
-        f"Со скидкой: {rental.discounted_price:,} руб.\n"
-        f"Залог: {rental.deposit:,} руб."
-    )
-
-    await bot.send_message(EMPLOYEE_CHAT_ID, message)
-
-    return {"message": "Заявка сохранена", "id": new_booking.id}
-
 @router.get("/services", response_class=HTMLResponse)
 async def services_page(request: Request, moto: str = "", start: str = "", end: str = "", user_id: str = "", phone: str = ""):
     return templates.TemplateResponse("services.html", {
@@ -148,6 +97,75 @@ async def summary_page(request: Request,
         "discounted_price": discounted_price,
         "extra_services_price": extra_services_price
     })
+
+@router.post("/confirm")
+async def confirm_rental(rental: BookingCreate, db: Session = Depends(get_db)):
+    try:
+        logger.info("Получен запрос: %s", rental.dict())
+
+        moto = db.query(Motorcycle).filter_by(model=rental.moto).first()
+        if not moto:
+            logger.warning("Неизвестный мотоцикл: %s", rental.moto)
+            raise HTTPException(status_code=400, detail="Unknown motorcycle")
+
+        try:
+            start_dt = datetime.fromisoformat(rental.start.replace("Z", "+00:00"))
+            end_dt = datetime.fromisoformat(rental.end.replace("Z", "+00:00"))
+        except ValueError as e:
+            logger.error("Ошибка формата даты: %s", e)
+            raise HTTPException(status_code=400, detail="Invalid date format")
+
+        if end_dt <= start_dt:
+            logger.warning("Дата окончания раньше или равна дате начала")
+            raise HTTPException(status_code=400, detail="End date must be after start date")
+
+        days_count = (end_dt - start_dt).days + 1
+        price_per_day = moto.price_per_day
+
+        new_booking = Booking(
+            moto=rental.moto,
+            user_id=rental.user_id,
+            phone=rental.phone,
+            start_date=rental.start,
+            end_date=rental.end,
+            services=rental.services,
+            equipment_details=rental.equipment_details,
+            delivery_address=rental.delivery_address,
+            comments=rental.comments,
+            base_price=rental.base_price,
+            discounted_price=rental.discounted_price,
+            extra_services_price=rental.extra_services_price,
+            deposit=rental.deposit,
+            total=rental.total,
+            price_per_day=rental.price_per_day,
+            days_count=rental.days_count,
+            status="pending",
+            source="telegram_miniapp"
+        )
+        db.add(new_booking)
+        db.commit()
+        db.refresh(new_booking)
+
+        message = (
+            f"Новая заявка на аренду мотоцикла:\n\n"
+            f"Мотоцикл: {rental.moto}\n"
+            f"Период: {start_dt.strftime('%d.%m.%Y')} – {end_dt.strftime('%d.%m.%Y')}\n"
+            f"Телефон: {rental.phone}\n"
+            f"Telegram ID: {rental.user_id}\n"
+            f"Цена без скидки: {rental.base_price:,} руб.\n"
+            f"Со скидкой: {rental.discounted_price:,} руб.\n"
+            f"Залог: {rental.deposit:,} руб."
+        )
+
+        await bot.send_message(EMPLOYEE_CHAT_ID, message)
+        logger.info("Заявка успешно создана: %s", new_booking.id)
+
+        return {"message": "Заявка сохранена", "id": new_booking.id}
+
+    except Exception as e:
+        logger.error("Ошибка в confirm_rental: %s", str(e))
+        traceback.print_exc()
+        raise HTTPException(status_code=400, detail="Internal error")
 
 @app.get("/admin/calendar", response_class=HTMLResponse)
 async def show_admin_calendar(request: Request, db: Session = Depends(get_db)):
@@ -247,14 +265,6 @@ async def delete_motorcycle(moto_id: int, db: Session = Depends(get_db)):
 app.include_router(bookings.router)
 app.include_router(motos.router)
 app.include_router(router, prefix="/app")
-
-from fastapi.requests import Request
-from fastapi.responses import JSONResponse
-from fastapi.exceptions import RequestValidationError
-from starlette.status import HTTP_422_UNPROCESSABLE_ENTITY
-import logging
-
-logger = logging.getLogger("uvicorn.error")
 
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
