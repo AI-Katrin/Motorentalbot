@@ -194,7 +194,11 @@
 
       if (response.ok) {
         alert("Заявка успешно отправлена! Мы скоро свяжемся с вами.");
-        window.location.href = "/admin/requests";
+        if (window.Telegram && window.Telegram.WebApp) {
+          window.Telegram.WebApp.close(); // Закрываем Mini App
+        } else {
+          window.location.href = "https://t.me/your_bot_username"; // ← замени на имя своего бота
+        }
       } else {
         alert("Ошибка при отправке заявки. Попробуйте позже.");
       }

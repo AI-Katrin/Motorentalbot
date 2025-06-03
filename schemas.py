@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Optional, List
+from typing import Optional
 
 
 class MotoCreate(BaseModel):
@@ -52,7 +52,7 @@ class BookingCreate(BaseModel):
 class BookingOut(BaseModel):
     id: int
     moto_id: int
-    moto_obj: MotoBrief
+    moto_obj: Optional[MotoBrief]  # <-- исправлено здесь
     user_id: Optional[str]
     phone: Optional[str]
     start_date: str
