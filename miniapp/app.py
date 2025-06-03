@@ -123,6 +123,7 @@ async def confirm_rental(rental: BookingCreate, db: Session = Depends(get_db)):
         price_per_day = moto.price_per_day
 
         new_booking = Booking(
+            moto_id=rental.moto_id
             moto=rental.moto,
             user_id=rental.user_id,
             phone=rental.phone,
