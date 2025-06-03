@@ -6,6 +6,7 @@
   <title>Аренда мотоцикла</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
   <style>
+
     body {
       font-family: Arial, sans-serif;
       margin: 0;
@@ -153,6 +154,7 @@
         {% for moto in motorcycles %}
         <div class="swiper-slide"
              onclick="openModal(this)"
+             data-id="{{ moto.id }}"
              data-name="{{ moto.brand }} {{ moto.model }}"
              data-description="{{ moto.description }}">
           <div class="img-wrapper">
@@ -212,7 +214,8 @@
 
     function goToCalendar() {
       const activeSlide = document.querySelector(".swiper-slide-active");
-      const motoName = activeSlide.querySelector("h2").innerText;
+      const motoName = activeSlide.dataset.name;
+      const motoId = activeSlide.dataset.id;
 
       const depositRaw = activeSlide.querySelectorAll("p")[1].innerText
         .replace("Залог: ", "")
@@ -231,7 +234,7 @@
       const user_id = params.get("user_id");
       const phone = params.get("phone");
 
-      const url = `/app/calendar?user_id=${encodeURIComponent(user_id)}&phone=${encodeURIComponent(phone)}&moto=${encodeURIComponent(motoName)}&deposit=${deposit}&price_per_day=${price_per_day}`;
+      const url = `/app/calendar?user_id=${encodeURIComponent(user_id)}&phone=${encodeURIComponent(phone)}&moto_id=${motoId}&moto=${encodeURIComponent(motoName)}&deposit=${deposit}&price_per_day=${price_per_day}`;
       window.location.href = url;
     }
 
