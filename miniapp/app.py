@@ -247,3 +247,21 @@ async def delete_motorcycle(moto_id: int, db: Session = Depends(get_db)):
 app.include_router(bookings.router)
 app.include_router(motos.router)
 app.include_router(router, prefix="/app")
+
+from fastapi.requests import Request
+from fastapi.responses import JSONResponse
+from fastapi.exceptions import RequestValidationError
+from starlette.status import HTTP_422_UNPROCESSABLE_ENTITY
+import logging
+
+logger = logging.getLogger("uvicorn.error")
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    logger.error(f"[VALIDATION ERROR] URL: {request.url}")
+    logger.error(f"[VALIDATION ERROR] Body: {await request.body()}")
+    logger.error(f"[VALIDATION ERROR] Details: {exc.errors()}")
+    return JSONResponse(
+        status_code=HTTP_422_UNPROCESSABLE_ENTITY,
+        content={"detail": exc.errors()}
+    )
