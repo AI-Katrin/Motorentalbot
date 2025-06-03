@@ -138,6 +138,12 @@
     const discountedPrice = Number(data.discounted_price || 0);
     const deposit = Number(data.deposit || 0);
     const extraServicesPrice = Number(data.extra_services_price || 0);
+    const pricePerDay = Number(data.price_per_day || 0);
+
+    const start = new Date(data.start);
+    const end = new Date(data.end);
+    const daysCount = Math.round((end - start) / (1000 * 60 * 60 * 24)) + 1;
+
     const total = discountedPrice + extraServicesPrice;
 
     document.getElementById("moto").textContent = data.moto || "-";
@@ -157,7 +163,9 @@
       discounted_price: discountedPrice,
       extra_services_price: extraServicesPrice,
       deposit,
-      total
+      total,
+      price_per_day: pricePerDay,
+      days_count: daysCount
     };
   }
 
@@ -166,6 +174,8 @@
     const data = {
       ...raw,
       moto_id: parseInt(raw.moto_id),
+      price_per_day: parseInt(raw.price_per_day),
+      days_count: parseInt(raw.days_count),
       base_price: parseInt(raw.base_price),
       discounted_price: parseInt(raw.discounted_price),
       extra_services_price: parseInt(raw.extra_services_price),

@@ -42,7 +42,6 @@ def create_booking(data: BookingCreate, db: Session = Depends(get_db)):
     if end_date <= start_date:
         raise HTTPException(status_code=400, detail="Дата окончания должна быть позже даты начала")
 
-    # ✅ Расчёт дополнительных полей
     days_count = (end_date - start_date).days + 1
     price_per_day = moto.price_per_day
 
