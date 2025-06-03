@@ -103,10 +103,10 @@ async def confirm_rental(rental: BookingCreate, db: Session = Depends(get_db)):
     try:
         logger.info("Получен запрос: %s", rental.dict())
 
-        moto = db.query(Motorcycle).filter_by(model=rental.moto).first()
+        moto = db.query(Motorcycle).filter_by(id=rental.moto_id).first()
         if not moto:
-            logger.warning("Неизвестный мотоцикл: %s", rental.moto)
-            raise HTTPException(status_code=400, detail="Unknown motorcycle")
+            logger.warning("Неизвестный mотоцикл с ID: %s", rental.moto_id)
+            raise HTTPException(status_code=400, detail="Unknown motorcycle ID")
 
         try:
             start_dt = datetime.fromisoformat(rental.start.replace("Z", "+00:00"))
