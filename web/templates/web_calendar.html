@@ -4,20 +4,88 @@
   <meta charset="UTF-8">
   <title>Календарь бронирований | Админ-панель</title>
   <style>
-    body { font-family: Arial, sans-serif; padding: 20px; background: #f2f2f2; }
-    h1 { text-align: center; }
-    table { border-collapse: collapse; width: 100%; margin-top: 20px; background: white; }
-    th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
-    th { background-color: #eee; }
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      background: #f2f2f2;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 15px 30px;
+      background-color: #ffffff;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .logo {
+      font-weight: bold;
+      font-size: 20px;
+    }
+
+    .menu {
+      display: flex;
+      gap: 20px;
+    }
+
+    .menu a {
+      text-decoration: none;
+      color: #333;
+      font-weight: 500;
+      padding: 6px 12px;
+      border-radius: 4px;
+    }
+
+    .menu a:hover {
+      background-color: #eee;
+    }
+
+    h1 {
+      text-align: center;
+      margin-top: 20px;
+    }
+
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin-top: 20px;
+      background: white;
+    }
+
+    th, td {
+      border: 1px solid #ccc;
+      padding: 8px;
+      text-align: center;
+    }
+
+    th {
+      background-color: #eee;
+    }
 
     .free { background-color: #fff; }
     .confirmed { background-color: #d3d3d3; }
     .pending { background-color: #87cefa; }
     .blocked { background-color: #f08080; }
 
-    .legend { margin-top: 20px; display: flex; gap: 20px; }
-    .legend div { display: flex; align-items: center; gap: 5px; }
-    .square { width: 15px; height: 15px; border: 1px solid #ccc; }
+    .legend {
+      margin-top: 20px;
+      display: flex;
+      gap: 20px;
+      justify-content: center;
+    }
+
+    .legend div {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .square {
+      width: 15px;
+      height: 15px;
+      border: 1px solid #ccc;
+    }
 
     .square.confirmed { background-color: #d3d3d3; }
     .square.pending { background-color: #87cefa; }
@@ -79,6 +147,16 @@
   </style>
 </head>
 <body>
+
+  <header>
+    <div class="logo">MOTORENTAL</div>
+    <nav class="menu">
+      <a href="/admin/calendar">Календарь</a>
+      <a href="/admin/requests">Заявки</a>
+      <a href="/admin/add-moto">Мотопарк</a>
+    </nav>
+  </header>
+
   <h1>Календарь бронирований</h1>
 
   <div class="legend">

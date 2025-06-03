@@ -7,6 +7,42 @@
     body {
       font-family: Arial, sans-serif;
       background: #f2f2f2;
+      margin: 0;
+      padding: 0;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 15px 30px;
+      background-color: #ffffff;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .logo {
+      font-weight: bold;
+      font-size: 20px;
+    }
+
+    .menu {
+      display: flex;
+      gap: 20px;
+    }
+
+    .menu a {
+      text-decoration: none;
+      color: #333;
+      font-weight: 500;
+      padding: 6px 12px;
+      border-radius: 4px;
+    }
+
+    .menu a:hover {
+      background-color: #eee;
+    }
+
+    main {
       padding: 40px;
       max-width: 800px;
       margin: auto;
@@ -21,7 +57,7 @@
       background: #fff;
       padding: 30px;
       border-radius: 10px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     }
 
     label {
@@ -79,32 +115,43 @@
 </head>
 <body>
 
-  <h1>Добавить мотоцикл</h1>
+  <header>
+    <div class="logo">MOTORENTAL</div>
+    <nav class="menu">
+      <a href="/admin/calendar">Календарь</a>
+      <a href="/admin/requests">Заявки</a>
+      <a href="/admin/add-moto">Мотопарк</a>
+    </nav>
+  </header>
 
-  <form id="motoForm" enctype="multipart/form-data">
-    <label for="brand">Марка мотоцикла:</label>
-    <input type="text" id="brand" name="brand" required placeholder="BMW">
+  <main>
+    <h1>Добавить мотоцикл</h1>
 
-    <label for="model">Модель мотоцикла:</label>
-    <input type="text" id="model" name="model" required placeholder="R 1250 GS">
+    <form id="motoForm" enctype="multipart/form-data">
+      <label for="brand">Марка мотоцикла:</label>
+      <input type="text" id="brand" name="brand" required placeholder="BMW">
 
-    <label for="description">Описание:</label>
-    <textarea id="description" name="description" required placeholder="Описание мотоцикла"></textarea>
+      <label for="model">Модель мотоцикла:</label>
+      <input type="text" id="model" name="model" required placeholder="R 1250 GS">
 
-    <label for="price_per_day">Цена за сутки (руб.):</label>
-    <input type="number" id="price_per_day" name="price_per_day" required placeholder="15000" step="1" min="0">
+      <label for="description">Описание:</label>
+      <textarea id="description" name="description" required placeholder="Описание мотоцикла"></textarea>
 
-    <label for="deposit">Залоговый депозит (руб.):</label>
-    <input type="number" id="deposit" name="deposit" required placeholder="50000" step="1" min="0">
+      <label for="price_per_day">Цена за сутки (руб.):</label>
+      <input type="number" id="price_per_day" name="price_per_day" required placeholder="15000" step="1" min="0">
 
-    <label for="image">Фото мотоцикла:</label>
-    <input type="file" id="image" name="image" accept="image/*" required>
+      <label for="deposit">Залоговый депозит (руб.):</label>
+      <input type="number" id="deposit" name="deposit" required placeholder="50000" step="1" min="0">
 
-    <button type="submit">Добавить</button>
-  </form>
+      <label for="image">Фото мотоцикла:</label>
+      <input type="file" id="image" name="image" accept="image/*" required>
 
-  <div class="success" id="successMsg" style="display: none;">Мотоцикл добавлен!</div>
-  <div class="error" id="errorMsg" style="display: none;">Ошибка при добавлении</div>
+      <button type="submit">Добавить</button>
+    </form>
+
+    <div class="success" id="successMsg" style="display: none;">Мотоцикл добавлен!</div>
+    <div class="error" id="errorMsg" style="display: none;">Ошибка при добавлении</div>
+  </main>
 
   <script>
     const form = document.getElementById("motoForm");
