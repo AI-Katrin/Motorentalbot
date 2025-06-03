@@ -26,6 +26,8 @@
         <th>Мотоцикл</th>
         <th>Дата начала</th>
         <th>Дата окончания</th>
+        <th>Цена за сутки</th>
+        <th>Дней</th>
         <th>Телефон</th>
         <th>Telegram ID</th>
         <th>Базовая цена</th>
@@ -68,11 +70,21 @@
             ? `${booking.moto_obj.brand} ${booking.moto_obj.model}`
             : booking.moto || `ID: ${booking.moto_id}`;
 
+          const start = new Date(booking.start_date);
+          const end = new Date(booking.end_date);
+          const daysCount = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
+
+          const pricePerDay = booking.base_price && daysCount
+            ? Math.round(booking.base_price / daysCount)
+            : 0;
+
           tr.innerHTML = `
             <td>#${booking.id}</td>
             <td>${motoName}</td>
             <td>${booking.start_date}</td>
             <td>${booking.end_date}</td>
+            <td>${pricePerDay?.toLocaleString("ru-RU")} ₽</td>
+            <td>${daysCount}</td>
             <td>${booking.phone || "-"}</td>
             <td>${booking.user_id || "-"}</td>
             <td>${booking.base_price?.toLocaleString("ru-RU") || "0"} ₽</td>

@@ -10,10 +10,10 @@ from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from aiogram import Bot
-from pydantic import BaseModel
 from datetime import datetime
 from sqlalchemy.orm import Session
 from uuid import uuid4
+
 from config import BOT_TOKEN, EMPLOYEE_CHAT_ID
 from schemas import BookingCreate
 from models import Booking, Motorcycle
@@ -25,7 +25,6 @@ app = FastAPI()
 router = APIRouter()
 bot = Bot(token=BOT_TOKEN)
 
-# Шаблоны и статика
 templates = Jinja2Templates(directory="miniapp/templates")
 admin_templates = Jinja2Templates(directory="web/templates")
 app.mount("/static", StaticFiles(directory="miniapp/static"), name="static")
@@ -73,6 +72,9 @@ async def confirm_rental(rental: BookingCreate, db: Session = Depends(get_db)):
     if end_dt <= start_dt:
         raise HTTPException(status_code=400, detail="End date must be after start date")
 
+    days_count = (end_dt - start_dt).days + 1
+    price_per_day = moto.price_per_day
+
     new_booking = Booking(
         moto=rental.moto,
         user_id=rental.user_id,
@@ -88,6 +90,8 @@ async def confirm_rental(rental: BookingCreate, db: Session = Depends(get_db)):
         extra_services_price=rental.extra_services_price,
         deposit=rental.deposit,
         total=rental.total,
+        price_per_day=price_per_day,
+        days_count=days_count,
         status="pending",
         source="telegram_miniapp"
     )

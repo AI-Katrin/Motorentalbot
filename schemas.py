@@ -47,11 +47,10 @@ class BookingCreate(BaseModel):
     total: int = 0
 
 
-
 class BookingOut(BaseModel):
     id: int
     moto_id: int
-    moto_obj: MotoBrief  # ✅ вложенная модель мотоцикла
+    moto_obj: MotoBrief
     user_id: Optional[str]
     phone: Optional[str]
     start_date: str
@@ -65,6 +64,8 @@ class BookingOut(BaseModel):
     extra_services_price: Optional[int]
     deposit: Optional[int]
     total: Optional[int]
+    price_per_day: Optional[int]
+    days_count: Optional[int]
     status: str
     source: Optional[str]
 
