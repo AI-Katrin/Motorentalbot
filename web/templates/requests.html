@@ -4,12 +4,77 @@
   <meta charset="UTF-8">
   <title>Заявки на аренду</title>
   <style>
-    body { font-family: Arial, sans-serif; padding: 20px; background-color: #f2f2f2; }
-    h1 { text-align: center; }
-    table { width: 100%; border-collapse: collapse; background: #fff; font-size: 14px; }
-    th, td { padding: 8px; border: 1px solid #ddd; text-align: left; vertical-align: top; }
-    th { background-color: #eee; }
-    button { padding: 6px 10px; margin: 2px; cursor: pointer; }
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f2f2f2;
+      margin: 0;
+      padding: 0;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 15px 30px;
+      background-color: #ffffff;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .logo {
+      font-weight: bold;
+      font-size: 20px;
+    }
+
+    .menu {
+      display: flex;
+      gap: 20px;
+    }
+
+    .menu a {
+      text-decoration: none;
+      color: #333;
+      font-weight: 500;
+      padding: 6px 12px;
+      border-radius: 4px;
+    }
+
+    .menu a:hover {
+      background-color: #eee;
+    }
+
+    main {
+      padding: 20px 30px;
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: #fff;
+      font-size: 14px;
+    }
+
+    th, td {
+      padding: 8px;
+      border: 1px solid #ddd;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      background-color: #eee;
+    }
+
+    button {
+      padding: 6px 10px;
+      margin: 2px;
+      cursor: pointer;
+    }
+
     .pending { background-color: #fffbe6; }
     .confirmed { background-color: #e6ffed; }
     .declined { background-color: #ffe6e6; }
@@ -18,33 +83,45 @@
   </style>
 </head>
 <body>
-  <h1>Заявки на аренду</h1>
-  <table id="requests-table">
-    <thead>
-      <tr>
-        <th>ID</th>
-        <th>Мотоцикл</th>
-        <th>Дата начала</th>
-        <th>Дата окончания</th>
-        <th>Цена за сутки</th>
-        <th>Дней</th>
-        <th>Телефон</th>
-        <th>Telegram ID</th>
-        <th>Базовая цена</th>
-        <th>Цена со скидкой</th>
-        <th>Доп. услуги</th>
-        <th>Стоимость доп. услуг</th>
-        <th>Залог</th>
-        <th>Итого</th>
-        <th>Экипировка</th>
-        <th>Адрес доставки</th>
-        <th>Комментарий</th>
-        <th>Статус</th>
-        <th>Действие</th>
-      </tr>
-    </thead>
-    <tbody></tbody>
-  </table>
+
+  <header>
+    <div class="logo">MOTORENTAL</div>
+    <nav class="menu">
+      <a href="/admin/calendar">Календарь</a>
+      <a href="/admin/requests">Заявки</a>
+      <a href="/admin/add-moto">Мотопарк</a>
+    </nav>
+  </header>
+
+  <main>
+    <h1>Заявки на аренду</h1>
+    <table id="requests-table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Мотоцикл</th>
+          <th>Дата начала</th>
+          <th>Дата окончания</th>
+          <th>Цена за сутки</th>
+          <th>Дней</th>
+          <th>Телефон</th>
+          <th>Telegram ID</th>
+          <th>Базовая цена</th>
+          <th>Цена со скидкой</th>
+          <th>Доп. услуги</th>
+          <th>Стоимость доп. услуг</th>
+          <th>Залог</th>
+          <th>Итого</th>
+          <th>Экипировка</th>
+          <th>Адрес доставки</th>
+          <th>Комментарий</th>
+          <th>Статус</th>
+          <th>Действие</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </main>
 
   <script>
     const apiUrl = "/bookings";
