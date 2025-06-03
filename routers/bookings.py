@@ -39,9 +39,16 @@ def create_booking(data: BookingCreate, db: Session = Depends(get_db)):
     except ValueError:
         raise HTTPException(status_code=400, detail="Неверный формат даты")
 
+    if end_date <= start_date:
+        raise HTTPException(status_code=400, detail="Дата окончания должна быть позже даты начала")
+
+    # ✅ Расчёт дополнительных полей
+    days_count = (end_date - start_date).days + 1
+    price_per_day = moto.price_per_day
+
     booking = Booking(
         moto_id=moto.id,
-        moto=data.moto,  # ← если ты хранишь название тоже
+        moto=data.moto,
         user_id=data.user_id,
         phone=data.phone,
         start_date=start_date,
@@ -55,6 +62,8 @@ def create_booking(data: BookingCreate, db: Session = Depends(get_db)):
         extra_services_price=data.extra_services_price,
         deposit=data.deposit,
         total=data.total,
+        price_per_day=price_per_day,
+        days_count=days_count,
         source="web_admin",
         status="pending"
     )

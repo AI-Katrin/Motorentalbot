@@ -29,6 +29,8 @@ class Booking(Base):
     extra_services_price = Column(Integer)
     deposit = Column(Integer)
     total = Column(Integer)
+    price_per_day = Column(Integer)
+    days_count = Column(Integer)
     status = Column(Enum(BookingStatus), default=BookingStatus.pending)
     source = Column(String, default="telegram_app")
 
