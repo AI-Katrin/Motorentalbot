@@ -101,6 +101,7 @@
   <input type="hidden" id="phone" name="phone">
   <input type="hidden" id="deposit">
   <input type="hidden" id="price_per_day">
+  <input type="hidden" id="moto_id">
   <div id="price-summary">
     <p>Стоимость (без скидки): <span id="base-price">—</span> руб.</p>
     <p>Стоимость аренды (с учетом скидки): <span id="discounted-price">—</span> руб.</p>
@@ -120,7 +121,7 @@
   let unavailableRanges = [];
   let pricePerDay = 0;
   let deposit = 0;
-  let calendar; // сохраняем экземпляр flatpickr
+  let calendar;
 
   function getQueryParams() {
     const params = {};
@@ -136,7 +137,7 @@
       const res = await fetch("/bookings/");
       const bookings = await res.json();
       bookings.forEach(b => {
-        if (b.moto_id === motoId && b.status === "confirmed") {
+        if (b.moto_id === parseInt(motoId) && b.status === "confirmed") {
           const start = new Date(new Date(b.start_date).getTime() - 2 * 60 * 60 * 1000);
           const end = new Date(new Date(b.end_date).getTime() + 2 * 60 * 60 * 1000);
           unavailableRanges.push({ from: start, to: end });
@@ -157,6 +158,7 @@
         deposit = moto.deposit;
         document.getElementById("price_per_day").value = pricePerDay;
         document.getElementById("deposit").value = deposit;
+        document.getElementById("moto_id").value = moto.id;
 
         if (moto.image_url) {
           const img = document.getElementById("moto-image");
@@ -201,6 +203,7 @@
     const [start, end] = range;
     const params = new URLSearchParams({
       moto: currentMoto,
+      moto_id: document.getElementById("moto_id").value,
       start: start.toISOString(),
       end: end.toISOString(),
       user_id: document.getElementById("user_id").value,
@@ -220,6 +223,7 @@
     document.getElementById("moto-display").textContent = currentMoto;
     document.getElementById("user_id").value = params["user_id"] || "";
     document.getElementById("phone").value = params["phone"] || "";
+    document.getElementById("moto_id").value = params["moto_id"] || "";
 
     calendar = flatpickr("#date-range", {
       mode: "range",
