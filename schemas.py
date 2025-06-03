@@ -46,6 +46,7 @@ class BookingCreate(BaseModel):
     deposit: int = 0
     total: int = 0
     price_per_day: int = 0
+    days_count: Optional[int] = 0
 
 
 class BookingOut(BaseModel):
