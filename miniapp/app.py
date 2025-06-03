@@ -90,8 +90,8 @@ async def confirm_rental(rental: BookingCreate, db: Session = Depends(get_db)):
         extra_services_price=rental.extra_services_price,
         deposit=rental.deposit,
         total=rental.total,
-        price_per_day=price_per_day,
-        days_count=days_count,
+        price_per_day=rental.price_per_day,
+        days_count=rental.days_count,
         status="pending",
         source="telegram_miniapp"
     )
