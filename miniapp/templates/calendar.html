@@ -97,8 +97,8 @@
   <img id="moto-image" src="" alt="Фото мотоцикла">
   <label for="date-range">Период аренды:</label>
   <input type="text" id="date-range" name="date-range" placeholder="Выберите период" readonly>
-  <input type="hidden" id="user_id" name="user_id">
-  <input type="hidden" id="phone" name="phone">
+  <input type="hidden" id="user_id">
+  <input type="hidden" id="phone">
   <input type="hidden" id="deposit">
   <input type="hidden" id="price_per_day">
   <input type="hidden" id="moto_id">
@@ -153,22 +153,28 @@
       const res = await fetch("/motos/");
       const motos = await res.json();
       const moto = motos.find(m => `${m.brand} ${m.model}`.trim() === motoName.trim());
-      if (moto) {
-        pricePerDay = moto.price_per_day;
-        deposit = moto.deposit;
-        document.getElementById("price_per_day").value = pricePerDay;
-        document.getElementById("deposit").value = deposit;
-        document.getElementById("moto_id").value = moto.id;
 
-        if (moto.image_url) {
-          const img = document.getElementById("moto-image");
-          img.src = moto.image_url.startsWith("http") ? moto.image_url : `${location.origin}${moto.image_url}`;
-          img.style.display = "block";
-        }
-
-        await loadBookings(moto.id);
-        calendar.set("disable", unavailableRanges);
+      if (!moto) {
+        alert("Ошибка: выбранный мотоцикл не найден.");
+        console.warn("Мотоцикл не найден:", motoName);
+        return;
       }
+
+      pricePerDay = moto.price_per_day;
+      deposit = moto.deposit;
+      document.getElementById("price_per_day").value = pricePerDay;
+      document.getElementById("deposit").value = deposit;
+      document.getElementById("moto_id").value = moto.id;
+
+      if (moto.image_url) {
+        const img = document.getElementById("moto-image");
+        img.src = moto.image_url.startsWith("http") ? moto.image_url : `${location.origin}${moto.image_url}`;
+        img.style.display = "block";
+      }
+
+      await loadBookings(moto.id);
+      calendar.set("disable", unavailableRanges);
+
     } catch (e) {
       console.error("Ошибка загрузки данных мотоцикла", e);
     }
@@ -195,7 +201,7 @@
 
   function submitForm() {
     const range = document.getElementById("date-range")._flatpickr?.selectedDates;
-    if (!range || range.length !== 2 || !currentMoto) {
+    if (!range || range.length !== 2) {
       alert("Пожалуйста, выберите период аренды.");
       return;
     }
@@ -220,6 +226,11 @@
   window.addEventListener("DOMContentLoaded", async () => {
     const params = getQueryParams();
     currentMoto = params["moto"] || "";
+    if (!currentMoto) {
+      alert("Ошибка: не передан мотоцикл.");
+      return;
+    }
+
     document.getElementById("moto-display").textContent = currentMoto;
     document.getElementById("user_id").value = params["user_id"] || "";
     document.getElementById("phone").value = params["phone"] || "";
