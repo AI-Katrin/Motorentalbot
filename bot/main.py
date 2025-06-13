@@ -11,8 +11,8 @@ from aiogram.fsm.state import StatesGroup, State, default_state
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.utils.keyboard import InlineKeyboardBuilder
-from config import BOT_TOKEN, MINIAPP_URL, EMPLOYEE_CHAT_ID, OPENAI_PROXY, OPENAI_API_KEY
 from dotenv import load_dotenv
+from config import BOT_TOKEN, MINIAPP_URL, EMPLOYEE_CHAT_ID, OPENAI_PROXY, OPENAI_API_KEY
 import aiohttp
 from aiohttp_socks import ProxyConnector
 from aiohttp import ClientSession
@@ -25,7 +25,7 @@ bot = Bot(token=BOT_TOKEN)
 storage = MemoryStorage()
 dp = Dispatcher(storage=storage)
 
-aclient = None  # объявим глобально
+aclient = None
 
 class RentFSM(StatesGroup):
     waiting_for_contact = State()
