@@ -1,28 +1,23 @@
-import sys
 import os
-import math
 import shutil
-import traceback
 import logging
+import traceback
 
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-
+from uuid import uuid4
+from datetime import datetime
 from fastapi import FastAPI, Request, UploadFile, File, Form, Depends, APIRouter, HTTPException
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from aiogram import Bot
-from datetime import datetime
+from fastapi.exceptions import RequestValidationError
 from sqlalchemy.orm import Session
-from uuid import uuid4
+from starlette.status import HTTP_422_UNPROCESSABLE_ENTITY
+from aiogram import Bot
 from config import BOT_TOKEN, EMPLOYEE_CHAT_ID
 from schemas import BookingCreate
 from models import Booking, Motorcycle
 from database import get_db
-from routers import bookings
-from routers import motos
-from fastapi.exceptions import RequestValidationError
-from starlette.status import HTTP_422_UNPROCESSABLE_ENTITY
+from routers import bookings, motos
 from miniapp.amocrm import send_lead_to_amocrm
 
 logger = logging.getLogger("uvicorn.error")

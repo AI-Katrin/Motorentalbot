@@ -1,23 +1,33 @@
-from fastapi import FastAPI, Request
-from pydantic import BaseModel
 import asyncio
-from openai import AsyncOpenAI
-import os
+import httpx
+import logging
+
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import Command, StateFilter
-from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove, MenuButtonCommands, InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo
+from aiogram.types import (
+    ReplyKeyboardMarkup,
+    KeyboardButton,
+    ReplyKeyboardRemove,
+    MenuButtonCommands,
+    InlineKeyboardMarkup,
+    InlineKeyboardButton,
+    WebAppInfo,
+)
 from aiogram.enums import ContentType
 from aiogram.fsm.state import StatesGroup, State, default_state
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.utils.keyboard import InlineKeyboardBuilder
-from dotenv import load_dotenv
-from config import BOT_TOKEN, MINIAPP_URL, EMPLOYEE_CHAT_ID, OPENAI_PROXY, OPENAI_API_KEY
-import aiohttp
-from aiohttp_socks import ProxyConnector
-from aiohttp import ClientSession
-import httpx
-import logging
+
+from openai import AsyncOpenAI
+
+from config import (
+    BOT_TOKEN,
+    MINIAPP_URL,
+    EMPLOYEE_CHAT_ID,
+    OPENAI_PROXY,
+    OPENAI_API_KEY,
+)
 
 logging.basicConfig(level=logging.INFO)
 
@@ -30,33 +40,25 @@ aclient = None
 class RentFSM(StatesGroup):
     waiting_for_contact = State()
 
-# Определяем состояния для процесса заявки
 class UrgentRequestFSM(StatesGroup):
     waiting_for_contact = State()
     waiting_for_motorcycle = State()
     waiting_for_pickup = State()
     waiting_for_delivery = State()
 
-# Раздел "Заявка на обратный звонок"
 class CallbackRequestFSM(StatesGroup):
     waiting_for_contact = State()
     waiting_for_comment = State()
 
-# Раздел "Маршрут для путешествия"
 class RouteFSM(StatesGroup):
-    in_dialog = State()  # состояние активного диалога с ChatGPT
-
+    in_dialog = State()
 
 async def get_chatgpt_response(prompt: str, state: FSMContext) -> str:
     try:
-        # Получаем текущую историю
         data = await state.get_data()
         history = data.get("chat_history", [])
-
-        # Добавляем текущее сообщение пользователя
         history.append({"role": "user", "content": prompt})
 
-        # Добавляем system prompt только один раз в самом начале
         messages = [{"role": "system", "content": ('''
                 Ты - опытный гид по мотопутешествиям. На основе данных из запроса ты составляешь маршрут для мотопутешествия. Анализируй маршруты, опубликованные в интернете, опыт других путешественников, твои знания об особенностях мототуров. 
                 Для составления маршрута важно учесть: 
@@ -121,9 +123,8 @@ async def get_chatgpt_response(prompt: str, state: FSMContext) -> str:
                 Отель: (ссылка на отель на Яндекс.картах и координаты для добавления на карту)
                 Кафе: (ссылка на информацию о кафе на Яндекс.картах и координаты для добавления на карту)."
                 
-                Важно! Не забывай присылать ссылки на кафе, отели, достопримечательности и заправки в конце описания каждого дня''')}] + history
+                Важно! Не забывай присылать ссылки на кафе, отели, достопримечательности и заправки. Например: Коломенский кремль https://yandex.ru/maps/-/CHWQRW8z или Гостиница Пекин https://yandex.ru/maps/-/CHWQRTLc ''')}] + history
 
-        # Отправляем запрос в ChatGPT
         response = await aclient.chat.completions.create(
             model="gpt-4o-mini",
             messages=messages,
@@ -131,14 +132,13 @@ async def get_chatgpt_response(prompt: str, state: FSMContext) -> str:
             temperature=0.7
         )
 
-        # Сохраняем ответ в истории
         answer = response.choices[0].message.content.strip()
         history.append({"role": "assistant", "content": answer})
-
-        # Обновляем историю в состоянии
         await state.update_data(chat_history=history)
-
         return answer
+
+    except httpx.HTTPStatusError as http_err:
+        return f"HTTP ошибка при обращении к OpenAI: {http_err.response.status_code} — {http_err.response.text}"
     except Exception as e:
         return f"Ошибка при обращении к ChatGPT: {e}"
 
@@ -147,11 +147,9 @@ MAX_MESSAGE_LENGTH = 4000
 async def send_long_message(chat_id: int, text: str, reply_markup=None):
     chunks = [text[i:i+MAX_MESSAGE_LENGTH] for i in range(0, len(text), MAX_MESSAGE_LENGTH)]
     for i, chunk in enumerate(chunks):
-        # Клавиатура только к последнему сообщению
         markup = reply_markup if i == len(chunks) - 1 else None
         await bot.send_message(chat_id, chunk, reply_markup=markup)
 
-# Функции отправки главного меню
 async def send_main_menu(chat_id: int):
     builder = InlineKeyboardBuilder()
     builder.row(types.InlineKeyboardButton(
@@ -173,7 +171,6 @@ async def send_main_menu(chat_id: int):
     keyboard = builder.as_markup()
     await bot.send_message(chat_id, "Добро пожаловать в MotoRentalBot. Выберите действие:", reply_markup=keyboard)
 
-# Обработчик команды /start
 @dp.message(Command(commands=["start"]))
 async def send_welcome(message: types.Message, state: FSMContext):
     await state.clear()  # Сбросить текущее состояние
@@ -182,7 +179,7 @@ async def send_welcome(message: types.Message, state: FSMContext):
 
 @dp.callback_query(F.data == "rent_motorcycle")
 async def request_contact_before_rent(callback_query: types.CallbackQuery, state: FSMContext):
-    #Запрашиваем номер телефона перед открытием WebApp
+
     await bot.answer_callback_query(callback_query.id)
     contact_keyboard = ReplyKeyboardMarkup(
         keyboard=[
@@ -201,18 +198,17 @@ async def request_contact_before_rent(callback_query: types.CallbackQuery, state
     print("RentFSM.waiting_for_contact установлен")
 
 
-## Обработчик для кнопки "Аренда мотоциклов"
 @dp.message(RentFSM.waiting_for_contact, F.content_type == ContentType.CONTACT)
 async def process_contact_and_open_webapp(message: types.Message, state: FSMContext):
-    """Обрабатываем контакт и открываем Mini App"""
+
     phone_number = message.contact.phone_number
     user_id = message.from_user.id
     user_name = message.from_user.full_name
     await state.update_data(phone_number=phone_number)
-    # Уведомляем менеджера о входе нового пользователя
+
     await bot.send_message(EMPLOYEE_CHAT_ID, f"{user_name} (ID: {user_id}) вошел в Mini App\nТелефон: {phone_number}")
     await state.clear()
-    # Отправляем inline-кнопку для запуска Mini App
+
     miniapp_url = f"{MINIAPP_URL}?user_id={user_id}&phone={phone_number}"  # Добавляем параметры
     keyboard = InlineKeyboardMarkup(
         inline_keyboard=[
@@ -226,7 +222,6 @@ async def process_contact_and_open_webapp(message: types.Message, state: FSMCont
     )
 
 
-## Обработчик для кнопки "Вызвать Мотоэвакуатор"
 @dp.callback_query(F.data == "mototow")
 async def process_mototow(callback_query: types.CallbackQuery):
     await bot.answer_callback_query(callback_query.id)
@@ -237,11 +232,10 @@ async def process_mototow(callback_query: types.CallbackQuery):
     keyboard = builder.as_markup()
     await bot.send_message(callback_query.from_user.id, "Как вам удобнее вызвать эвакуатор?", reply_markup=keyboard)
 
-# Обработчик для варианта "Оставить заявку на мотоэвакуацию"
 @dp.callback_query(F.data == "urgent_request")
 async def process_urgent_request(callback_query: types.CallbackQuery, state: FSMContext):
     await bot.answer_callback_query(callback_query.id)
-    # Отправляем reply-клавиатуру для запроса контакта
+
     contact_keyboard = ReplyKeyboardMarkup(
         keyboard=[
             [KeyboardButton(text="Отправить контакт", request_contact=True)],
@@ -257,7 +251,6 @@ async def process_urgent_request(callback_query: types.CallbackQuery, state: FSM
     )
     await state.set_state(UrgentRequestFSM.waiting_for_contact)
 
-# Обработчик для получения контакта в заявке на мотоэвакуацию
 @dp.message(UrgentRequestFSM.waiting_for_contact, F.content_type == ContentType.CONTACT)
 async def process_urgent_contact(message: types.Message, state: FSMContext):
     contact = message.contact.phone_number
@@ -268,7 +261,6 @@ async def process_urgent_contact(message: types.Message, state: FSMContext):
     )
     await state.set_state(UrgentRequestFSM.waiting_for_motorcycle)
 
-# Обработчик для получения марки и модели мотоцикла
 @dp.message(UrgentRequestFSM.waiting_for_motorcycle)
 async def process_motorcycle(message: types.Message, state: FSMContext):
     motorcycle = message.text
@@ -276,7 +268,6 @@ async def process_motorcycle(message: types.Message, state: FSMContext):
     await message.answer(f"Вы указали: {motorcycle}.\nОткуда забрать мотоцикл? Введите адрес отправки:")
     await state.set_state(UrgentRequestFSM.waiting_for_pickup)
 
-# Обработчик для получения адреса отправки
 @dp.message(UrgentRequestFSM.waiting_for_pickup)
 async def process_pickup(message: types.Message, state: FSMContext):
     pickup_address = message.text
@@ -288,7 +279,6 @@ async def process_pickup(message: types.Message, state: FSMContext):
     )
     await state.set_state(UrgentRequestFSM.waiting_for_delivery)
 
-# Обработчик для получения адреса доставки
 @dp.message(UrgentRequestFSM.waiting_for_delivery)
 async def process_delivery(message: types.Message, state: FSMContext):
     delivery_address = message.text
@@ -296,12 +286,12 @@ async def process_delivery(message: types.Message, state: FSMContext):
     data = await state.get_data()
     motorcycle = data.get("motorcycle")
     pickup_address = data.get("pickup_address")
-    # Финальное сообщение пользователю
+
     await message.answer(
         f"Спасибо! Ваша заявка получена. Водитель свяжется с вами в ближайшее время.\n\n"
         f"Информация о доставке:\nМотоцикл: {motorcycle}\nАдрес отправки: {pickup_address}\nАдрес доставки: {delivery_address}"
     )
-    # Отправляем уведомление сотруднику
+
     user_name = message.from_user.full_name
     contact = data.get("contact")
     notify_text = (
@@ -311,25 +301,24 @@ async def process_delivery(message: types.Message, state: FSMContext):
     await bot.send_message(EMPLOYEE_CHAT_ID, notify_text)
     await state.clear()
 
-# Обработчик для кнопки "Позвонить менеджеру"
+
 @dp.callback_query(F.data == "call_manager")
 async def call_manager(callback_query: types.CallbackQuery):
     await bot.answer_callback_query(callback_query.id)
-    # Отправляем сообщение с HTML-ссылкой для звонка
+
     await bot.send_message(
         callback_query.from_user.id,
         'Номер телефона для вызова эвакуатора: <a href="tel:+79299585988">+79299585988</a>',
         parse_mode="HTML"
     )
 
-# Обработчик для inline кнопки "Назад" (callback "back_to_main")
+
 @dp.callback_query(F.data == "back_to_main")
 async def back_to_main(callback_query: types.CallbackQuery, state: FSMContext):
     await bot.answer_callback_query(callback_query.id)
     await state.clear()
     await send_main_menu(callback_query.from_user.id)
 
-# Объединённый обработчик для кнопки "Назад" (как для reply-клавиатуры, так и для текстовых сообщений)
 @dp.message(F.text == "Назад")
 async def back_handler(message: types.Message, state: FSMContext):
     current_state = await state.get_state()
@@ -338,7 +327,6 @@ async def back_handler(message: types.Message, state: FSMContext):
     await message.answer("Возвращаем вас в главное меню.", reply_markup=ReplyKeyboardRemove())
     await send_main_menu(message.chat.id)
 
-# Обработчик для кнопки "Заявка на обратный звонок"
 @dp.callback_query(F.data == "callback_request")
 async def process_callback_request(callback_query: types.CallbackQuery, state: FSMContext):
     await bot.answer_callback_query(callback_query.id)
@@ -358,7 +346,6 @@ async def process_callback_request(callback_query: types.CallbackQuery, state: F
     )
     await state.set_state(CallbackRequestFSM.waiting_for_contact)
 
-# Обработчик для получения контакта (для заявки на обратный звонок)
 @dp.message(CallbackRequestFSM.waiting_for_contact, F.content_type == ContentType.CONTACT)
 async def process_callback_contact(message: types.Message, state: FSMContext):
     contact = message.contact.phone_number
@@ -369,7 +356,6 @@ async def process_callback_contact(message: types.Message, state: FSMContext):
     )
     await state.set_state(CallbackRequestFSM.waiting_for_comment)
 
-# Обработчик для получения комментария (текстовое сообщение)
 @dp.message(CallbackRequestFSM.waiting_for_comment)
 async def process_callback_comment(message: types.Message, state: FSMContext):
     comment = message.text
@@ -392,7 +378,6 @@ async def process_callback_comment(message: types.Message, state: FSMContext):
     await bot.send_message(EMPLOYEE_CHAT_ID, notify_text)
     await state.clear()
 
-
 @dp.callback_query(F.data == "route")
 async def process_route(callback_query: types.CallbackQuery, state: FSMContext):
     await bot.answer_callback_query(callback_query.id)
@@ -410,14 +395,11 @@ async def process_route(callback_query: types.CallbackQuery, state: FSMContext):
 
     await send_long_message(callback_query.from_user.id, response, reply_markup=keyboard)
 
-
-# Обработчик для кнопки "Хочу уточнить детали"
 @dp.callback_query(F.data == "continue_route")
 async def continue_route(callback_query: types.CallbackQuery):
     await bot.answer_callback_query(callback_query.id)
     await bot.send_message(callback_query.from_user.id, "Пожалуйста, уточните детали вашего маршрута:")
 
-# Обработчик для диалога с пользователем (в состоянии RouteFSM.in_dialog)
 @dp.message(RouteFSM.in_dialog)
 async def route_dialog(message: types.Message, state: FSMContext):
     user_input = message.text
@@ -428,8 +410,6 @@ async def route_dialog(message: types.Message, state: FSMContext):
     keyboard = builder.as_markup()
     await send_long_message(message.chat.id, response, reply_markup=keyboard)
 
-
-# Обработчик для кнопки "Завершить составление маршрута"
 @dp.callback_query(F.data == "finish_route")
 async def finish_route(callback_query: types.CallbackQuery, state: FSMContext):
     await bot.answer_callback_query(callback_query.id)
@@ -440,7 +420,6 @@ async def finish_route(callback_query: types.CallbackQuery, state: FSMContext):
 async def get_commands(message: types.Message):
     cmds = await bot.get_my_commands()
     await message.answer(str(cmds))
-
 
 @dp.message(StateFilter(default_state), F.content_type == ContentType.CONTACT)
 async def contact_outside_state(message: types.Message, state: FSMContext):
@@ -459,7 +438,6 @@ async def contact_outside_state(message: types.Message, state: FSMContext):
     print("Ошибка. Контакт не ожидается сейчас.")
     await message.reply("Ошибка. Контакт не ожидается сейчас.")
 
-# Обработчик неизвестных текстовых сообщений
 @dp.message(F.content_type == ContentType.TEXT)
 async def fallback_handler(message: types.Message, state: FSMContext):
     current_state = await state.get_state()

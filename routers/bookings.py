@@ -1,7 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session, joinedload
 from datetime import datetime
-
 from database import get_db
 from models import Booking, Motorcycle
 from schemas import BookingOut, BookingUpdate, BookingCreate
@@ -11,7 +10,6 @@ router = APIRouter(prefix="/bookings", tags=["Bookings"])
 
 @router.get("/", response_model=list[BookingOut])
 def get_all_bookings(db: Session = Depends(get_db)):
-    # Подгружаем связанные объекты moto_obj для правильной сериализации
     bookings = db.query(Booking).options(joinedload(Booking.moto_obj)).all()
     return bookings
 
@@ -28,7 +26,6 @@ def update_booking(booking_id: int, update: BookingUpdate, db: Session = Depends
 
 @router.post("/confirm")
 def create_booking(data: BookingCreate, db: Session = Depends(get_db)):
-    # Поиск по moto_id
     moto = db.query(Motorcycle).filter(Motorcycle.id == data.moto_id).first()
     if not moto:
         raise HTTPException(status_code=404, detail="Мотоцикл не найден")
