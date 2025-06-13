@@ -1,14 +1,14 @@
+import shutil
+import os
+
 from fastapi import APIRouter, Depends, UploadFile, File, Form, HTTPException
 from sqlalchemy.orm import Session
 from database import get_db
 from models import Motorcycle
 from schemas import MotoOut
-import shutil
-import os
 from uuid import uuid4
 
 router = APIRouter(prefix="/motos", tags=["motos"])
-
 IMAGES_DIR = "miniapp/static/images"
 
 os.makedirs(IMAGES_DIR, exist_ok=True)
@@ -24,19 +24,16 @@ def create_moto(
     image: UploadFile = File(...),
     db: Session = Depends(get_db)
 ):
-    # Генерируем уникальное имя файла
     ext = image.filename.split(".")[-1]
     filename = f"{uuid4().hex}.{ext}"
     image_url= os.path.join(IMAGES_DIR, filename)
 
-    # Сохраняем файл
     try:
         with open(image_url, "wb") as buffer:
             shutil.copyfileobj(image.file, buffer)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Ошибка при сохранении изображения: {e}")
 
-    # Сохраняем запись в БД
     moto = Motorcycle(
         brand=brand,
         model=model,
