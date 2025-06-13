@@ -15,7 +15,6 @@ from aiogram import Bot
 from datetime import datetime
 from sqlalchemy.orm import Session
 from uuid import uuid4
-
 from config import BOT_TOKEN, EMPLOYEE_CHAT_ID
 from schemas import BookingCreate
 from models import Booking, Motorcycle
@@ -24,6 +23,7 @@ from routers import bookings
 from routers import motos
 from fastapi.exceptions import RequestValidationError
 from starlette.status import HTTP_422_UNPROCESSABLE_ENTITY
+from miniapp.amocrm import send_lead_to_amocrm
 
 logger = logging.getLogger("uvicorn.error")
 
@@ -146,6 +146,31 @@ async def confirm_rental(rental: BookingCreate, db: Session = Depends(get_db)):
         db.add(new_booking)
         db.commit()
         db.refresh(new_booking)
+
+        try:
+            await send_lead_to_amocrm({
+                "id": new_booking.id,
+                "moto": new_booking.moto,
+                "start": new_booking.start_date,
+                "end": new_booking.end_date,
+                "price_per_day": new_booking.price_per_day,
+                "days_count": new_booking.days_count,
+                "phone": new_booking.phone,
+                "user_id": new_booking.user_id,
+                "base_price": new_booking.base_price,
+                "discounted_price": new_booking.discounted_price,
+                "extra_services_price": new_booking.extra_services_price,
+                "deposit": new_booking.deposit,
+                "total": new_booking.total,
+                "services": new_booking.services,
+                "equipment_details": new_booking.equipment_details,
+                "delivery_address": new_booking.delivery_address,
+                "comments": new_booking.comments
+            })
+            logger.info("Заявка отправлена в amoCRM")
+        except Exception as amo_err:
+            logger.error(f"Ошибка при отправке в amoCRM: {amo_err}")
+
 
         message = (
             f"Новая заявка на аренду мотоцикла:\n\n"
